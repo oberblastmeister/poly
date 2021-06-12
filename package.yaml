@@ -38,9 +38,12 @@ default-extensions:
 - ConstraintKinds
 - FlexibleContexts
 - GeneralizedNewtypeDeriving
+- ApplicativeDo
+- TupleSections
 
 ghc-options:
 - -Wall
+- -Wno-unused-do-bind
 
 library:
   source-dirs: src
@@ -66,3 +69,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - poly
+    - hspec

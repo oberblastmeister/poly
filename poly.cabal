@@ -27,6 +27,8 @@ library
   exposed-modules:
       Poly
       Poly.Infer
+      Poly.Lexer
+      Poly.Parser
       Poly.Syntax
       Poly.Type
   other-modules:
@@ -39,7 +41,9 @@ library
       ConstraintKinds
       FlexibleContexts
       GeneralizedNewtypeDeriving
-  ghc-options: -Wall
+      ApplicativeDo
+      TupleSections
+  ghc-options: -Wall -Wno-unused-do-bind
   build-depends:
       base >=4.7 && <5
     , containers
@@ -66,7 +70,9 @@ executable poly-exe
       ConstraintKinds
       FlexibleContexts
       GeneralizedNewtypeDeriving
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+      ApplicativeDo
+      TupleSections
+  ghc-options: -Wall -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , containers
@@ -86,6 +92,7 @@ test-suite poly-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      ParseSpec
       Paths_poly
   hs-source-dirs:
       test
@@ -95,12 +102,15 @@ test-suite poly-test
       ConstraintKinds
       FlexibleContexts
       GeneralizedNewtypeDeriving
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+      ApplicativeDo
+      TupleSections
+  ghc-options: -Wall -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , containers
     , either
     , haskeline
+    , hspec
     , megaparsec
     , mtl
     , parser-combinators

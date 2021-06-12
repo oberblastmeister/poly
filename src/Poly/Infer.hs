@@ -4,6 +4,7 @@ import Control.Monad.Except
 import Control.Monad.State
 import Data.Either.Combinators
 import Data.Function
+import Data.List (nub)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -35,13 +36,35 @@ type Infer a = ExceptT TypeError (State Unique) a
 emptySubst :: Subst
 emptySubst = Map.empty
 
+emptyTypeEnv :: TypeEnv
+emptyTypeEnv = TypeEnv Map.empty
+
 compose :: Subst -> Subst -> Subst
 s1 `compose` s2 = apply s1 <$> s2 `Map.union` s1
 
 initUnique :: Unique
 initUnique = Unique 0
 
-closeOver = undefined
+closeOver :: (Map.Map TVar Type, Type) -> Scheme
+closeOver (sub, ty) = normalize sc
+  where
+    sc = generalize emptyTypeEnv (apply sub ty)
+
+normalize :: Scheme -> Scheme
+normalize (Forall ts body) = Forall (fmap snd ord) (normtype body)
+  where
+    ord = zip (nub $ fv body) (fmap TV letters)
+
+    fv (TVar a) = [a]
+    fv (TArr a b) = fv a ++ fv b
+    fv (TCon _) = []
+
+    normtype (TArr a b) = TArr (normtype a) (normtype b)
+    normtype (TCon a) = TCon a
+    normtype (TVar a) =
+      case lookup a ord of
+        Just x -> TVar x
+        Nothing -> error "type variable not in signature"
 
 runInfer :: Infer (Subst, Type) -> Either TypeError Scheme
 runInfer m = evalState (runExceptT m) initUnique & mapRight closeOver
