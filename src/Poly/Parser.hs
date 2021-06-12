@@ -1,4 +1,4 @@
-module Poly.Parser (parseExpr, parseModule) where
+module Poly.Parser (parseExpr, parseModule, Binding) where
 
 import Control.Monad.Combinators.Expr
 import Data.Functor
@@ -7,7 +7,6 @@ import Data.Void
 import Poly.Lexer
 import Poly.Syntax
 import Text.Megaparsec
-import Text.Megaparsec.Debug (dbg)
 
 variable :: Parser Expr
 variable = Var <$> ident
@@ -77,7 +76,6 @@ atomExpr =
     ]
 
 term :: Parser Expr
--- term = atomExpr
 term =
   atomExpr >>= \x ->
     (some atomExpr >>= \xs -> return (foldl App x xs))
