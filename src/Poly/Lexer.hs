@@ -1,8 +1,6 @@
 module Poly.Lexer where
 
 import Data.Char
-import Data.Set (Set)
-import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Void
@@ -22,7 +20,7 @@ symbol :: Text -> Parser Text
 symbol = L.symbol sc
 
 parens :: Parser a -> Parser a
-parens = between (char '(') (char ')')
+parens = between (symbol "(") (symbol ")")
 
 mkReserved :: [Text] -> Parser ()
 mkReserved l = choice $ (() <$) . symbol <$> l
@@ -40,13 +38,16 @@ reservedKeywords =
     ]
 
 ident :: Parser Text
-ident = do
-  notFollowedBy reservedKeywords
-  c <- letterChar
-  cs <- takeWhileP (Just "identifier") isIdentContinue
-  return (c `T.cons` cs)
+ident = lexeme ident'
   where
-    isIdentContinue = (||) <$> isAlphaNum <*> (== '_')
+    ident' = do
+      notFollowedBy reservedKeywords
+      c <- letterChar
+      cs <- takeWhileP (Just "identifier") isIdentContinue
+      return (c `T.cons` cs)
+      where
+        isIdentContinue = (||) <$> isAlphaNum <*> (== '_')
+
 reserved :: Text -> Parser ()
 reserved keyword =
   lexeme (string keyword *> notFollowedBy alphaNumChar)
@@ -58,4 +59,4 @@ integer :: Parser Integer
 integer = lexeme L.decimal
 
 semi :: Parser ()
-semi = () <$ char ';'
+semi = () <$ symbol ";"

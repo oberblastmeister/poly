@@ -85,12 +85,14 @@ term =
 
 operatorTable :: [[Operator Parser Expr]]
 operatorTable =
-  [ [ binary "*" Mul
+  [ [ binary "*" Mul,
+      binary "/" Div
     ],
     [ binary "+" Add,
       binary "-" Sub
     ],
-    [ binary "==" Eql
+    [ binary "==" Eql,
+      binary "!=" Neql
     ]
   ]
 

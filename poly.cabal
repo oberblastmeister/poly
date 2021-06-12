@@ -43,6 +43,7 @@ library
       GeneralizedNewtypeDeriving
       ApplicativeDo
       TupleSections
+      QuasiQuotes
   ghc-options: -Wall -Wno-unused-do-bind
   build-depends:
       base >=4.7 && <5
@@ -72,6 +73,7 @@ executable poly-exe
       GeneralizedNewtypeDeriving
       ApplicativeDo
       TupleSections
+      QuasiQuotes
   ghc-options: -Wall -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
@@ -105,6 +107,7 @@ test-suite poly-test
       GeneralizedNewtypeDeriving
       ApplicativeDo
       TupleSections
+      QuasiQuotes
   ghc-options: -Wall -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
