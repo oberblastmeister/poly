@@ -7,6 +7,7 @@ import Data.Void
 import Poly.Lexer
 import Poly.Syntax
 import Text.Megaparsec
+import Text.Megaparsec.Debug (dbg)
 
 variable :: Parser Expr
 variable = Var <$> ident
@@ -76,6 +77,7 @@ atomExpr =
     ]
 
 term :: Parser Expr
+-- term = atomExpr
 term =
   atomExpr >>= \x ->
     (some atomExpr >>= \xs -> return (foldl App x xs))

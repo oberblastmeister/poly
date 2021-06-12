@@ -92,6 +92,7 @@ test-suite poly-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      LexerSpec
       ParseSpec
       Paths_poly
   hs-source-dirs:
@@ -106,7 +107,8 @@ test-suite poly-test
       TupleSections
   ghc-options: -Wall -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      QuickCheck
+    , base >=4.7 && <5
     , containers
     , either
     , haskeline
