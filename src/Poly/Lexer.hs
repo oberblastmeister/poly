@@ -45,8 +45,7 @@ ident = lexeme ident'
       c <- letterChar
       cs <- takeWhileP (Just "identifier") isIdentContinue
       return (c `T.cons` cs)
-      where
-        isIdentContinue = (||) <$> isAlphaNum <*> (== '_')
+    isIdentContinue = (||) <$> isAlphaNum <*> (== '_')
 
 reserved :: Text -> Parser ()
 reserved keyword =
