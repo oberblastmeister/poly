@@ -1,5 +1,6 @@
 module Poly.Pretty
   ( ppr,
+    pprb,
     SimplePoly (..),
     PP (..),
     annNest,
@@ -11,6 +12,7 @@ where
 import Control.Monad.Reader
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TLB
+import Data.Text (Text)
 import Prettyprinter hiding (pretty)
 import Prettyprinter.Internal
 import Prettyprinter.Render.Util.SimpleDocTree
@@ -29,13 +31,22 @@ annParensIf = annotate ParensIf
 annNest :: Doc SimplePoly -> Doc SimplePoly
 annNest = annotate NestStart
 
-ppr :: PP a => a -> TL.Text
-ppr a = render $ treeForm $ layoutPretty defaultLayoutOptions $ pp a
+toTreeForm :: Doc ann -> SimpleDocTree ann
+toTreeForm = treeForm . layoutPretty defaultLayoutOptions
 
 type RenderM m = (MonadReader Bool m)
 
+ppr :: PP a => a -> Text
+ppr = TL.toStrict . render . toTreeForm . pp
+
+pprb :: PP a => a -> TLB.Builder
+pprb = renderb . toTreeForm . pp
+
 render :: SimpleDocTree SimplePoly -> TL.Text
-render doc = TLB.toLazyText $ runReader (render' doc) False
+render = TLB.toLazyText . renderb
+
+renderb :: SimpleDocTree SimplePoly -> TLB.Builder
+renderb doc = runReader (render' doc) False
 
 render' :: RenderM m => SimpleDocTree SimplePoly -> m TLB.Builder
 render' sp = case sp of

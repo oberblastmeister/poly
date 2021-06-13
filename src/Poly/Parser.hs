@@ -5,10 +5,12 @@ import Data.Either.Combinators
 import Data.Function ((&))
 import Data.Functor
 import Data.Text (Text)
+import qualified Data.Text.Lazy.Builder as LTB
 import Data.Void
 import Poly.Lexer
 import Poly.Syntax
 import Text.Megaparsec
+import TextShow
 
 variable :: Parser Expr
 variable = Var <$> ident
@@ -139,6 +141,9 @@ newtype PError = PError (ParseErrorBundle Text Void)
 
 instance Show PError where
   show (PError e) = errorBundlePretty e
+
+instance TextShow PError where
+  showb e = fromString $ show e
 
 parseExpr :: Text -> Either PError Expr
 parseExpr s = parse (contents expr) "<stdin>" s & mapLeft PError

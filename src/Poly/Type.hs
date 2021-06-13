@@ -10,6 +10,7 @@ where
 import Data.Text (Text)
 import Poly.Pretty
 import Prettyprinter
+import TextShow
 
 data Scheme = Forall [TVar] Type deriving (Show)
 
@@ -18,7 +19,7 @@ instance PP Scheme where
   pp (Forall ts t) = "forall" <+> hcat (punctuate space $ pretty <$> ts) <+> "." <+> pp t
 
 newtype TVar = TV Text
-  deriving (Show, Eq, Ord, Pretty)
+  deriving (Show, TextShow, Eq, Ord, Pretty)
 
 instance PP TVar where
   pp (TV t) = pretty t

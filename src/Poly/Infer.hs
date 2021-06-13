@@ -16,8 +16,11 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as TLB
+import Poly.Pretty
 import Poly.Syntax
 import Poly.Type
+import TextShow
 
 newtype TypeEnv = TypeEnv (Map Name Scheme)
 
@@ -27,7 +30,12 @@ data TypeError
   = InfiniteType TVar Type
   | UnificationFail Type Type
   | UnboundVariable Name
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance TextShow TypeError where
+  showb (InfiniteType v t) = mconcat ["Cannot construct the infinite type: ", pprb v, " = ", pprb t]
+  showb (UnificationFail a b) = mconcat ["Cannot unify type ", pprb a, " with ", pprb b]
+  showb (UnboundVariable x) = mconcat ["Name ", TLB.fromText x, " is not in scope"]
 
 type Subst = Map.Map TVar Type
 
