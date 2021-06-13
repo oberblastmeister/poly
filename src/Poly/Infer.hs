@@ -19,8 +19,6 @@ import qualified Data.Text as T
 import Poly.Syntax
 import Poly.Type
 
-data Scheme = Forall [TVar] Type deriving (Show)
-
 newtype TypeEnv = TypeEnv (Map Name Scheme)
 
 newtype Unique = Unique {count :: Int}
@@ -169,7 +167,7 @@ infer env ex = case ex of
     (s1, t1) <- infer env cond
     (s2, t2) <- infer env tr
     (s3, t3) <- infer env fl
-    s4 <- unify t1 typeBool
+    s4 <- unify t1 $ TCon TBool
     s5 <- unify t2 t3
     return (s5 `compose` s4 `compose` s3 `compose` s2 `compose` s1, apply s5 t2)
   Fix e1 -> do
@@ -183,8 +181,8 @@ infer env ex = case ex of
     tv <- fresh
     s3 <- unify (TArr t1 (TArr t2 tv)) (ops Map.! op)
     return (s1 `compose` s2 `compose` s3, apply s3 tv)
-  Lit (LInt _) -> return (emptySubst, typeInt)
-  Lit (LBool _) -> return (emptySubst, typeBool)
+  Lit (LInt _) -> return (emptySubst, TCon TInt)
+  Lit (LBool _) -> return (emptySubst, TCon TBool)
 
 extend :: TypeEnv -> (Name, Scheme) -> TypeEnv
 extend (TypeEnv env) (x, s) = TypeEnv $ Map.insert x s env
@@ -192,10 +190,10 @@ extend (TypeEnv env) (x, s) = TypeEnv $ Map.insert x s env
 ops :: Map BinOp Type
 ops =
   Map.fromList
-    [ (Add, typeInt `TArr` (typeInt `TArr` typeInt)),
-      (Mul, typeInt `TArr` (typeInt `TArr` typeInt)),
-      (Sub, typeInt `TArr` (typeInt `TArr` typeInt)),
-      (Eql, typeInt `TArr` (typeInt `TArr` typeBool))
+    [ (Add, intBinFun),
+      (Mul, intBinFun),
+      (Sub, intBinFun),
+      (Eql, TCon TInt `TArr` (TCon TInt `TArr` TCon TBool))
     ]
 
 lookupEnv :: InferM m => TypeEnv -> Name -> m (Subst, Type)

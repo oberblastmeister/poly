@@ -29,6 +29,7 @@ library
       Poly.Infer
       Poly.Lexer
       Poly.Parser
+      Poly.Pretty
       Poly.Syntax
       Poly.Type
   other-modules:
@@ -40,10 +41,12 @@ library
       LambdaCase
       ConstraintKinds
       FlexibleContexts
+      FlexibleInstances
       GeneralizedNewtypeDeriving
       ApplicativeDo
       TupleSections
       QuasiQuotes
+      InstanceSigs
   ghc-options: -Wall -Wno-unused-do-bind
   build-depends:
       base >=4.7 && <5
@@ -54,6 +57,7 @@ library
     , mtl
     , parser-combinators
     , pretty
+    , prettyprinter
     , text
     , text-show
     , transformers
@@ -70,10 +74,12 @@ executable poly-exe
       LambdaCase
       ConstraintKinds
       FlexibleContexts
+      FlexibleInstances
       GeneralizedNewtypeDeriving
       ApplicativeDo
       TupleSections
       QuasiQuotes
+      InstanceSigs
   ghc-options: -Wall -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
@@ -85,6 +91,7 @@ executable poly-exe
     , parser-combinators
     , poly
     , pretty
+    , prettyprinter
     , text
     , text-show
     , transformers
@@ -96,6 +103,7 @@ test-suite poly-test
   other-modules:
       LexerSpec
       ParseSpec
+      PrettySpec
       Paths_poly
   hs-source-dirs:
       test
@@ -104,10 +112,12 @@ test-suite poly-test
       LambdaCase
       ConstraintKinds
       FlexibleContexts
+      FlexibleInstances
       GeneralizedNewtypeDeriving
       ApplicativeDo
       TupleSections
       QuasiQuotes
+      InstanceSigs
   ghc-options: -Wall -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
@@ -121,6 +131,7 @@ test-suite poly-test
     , parser-combinators
     , poly
     , pretty
+    , prettyprinter
     , text
     , text-show
     , transformers

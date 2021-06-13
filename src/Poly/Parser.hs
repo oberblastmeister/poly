@@ -1,4 +1,4 @@
-module Poly.Parser (parseExpr, parseModule, Binding) where
+module Poly.Parser (parseExpr, parseModule, Decl) where
 
 import Control.Monad.Combinators.Expr
 import Data.Either.Combinators
@@ -102,18 +102,18 @@ binary name binOp = InfixL (Op binOp <$ symbol name)
 expr :: Parser Expr
 expr = makeExprParser term operatorTable
 
-type Binding = (Name, Expr)
+-- type Decl = (Name, Expr)
 
-letDecl :: Parser Binding
+letDecl :: Parser Decl
 letDecl = do
   reserved "let"
   name <- ident
   args <- many ident
   symbol "="
   body <- expr
-  return (name, foldr Lam body args)
+  return $ Decl name (foldr Lam body args)
 
-letRecDecl :: Parser Binding
+letRecDecl :: Parser Decl
 letRecDecl = do
   reserved "let"
   reserved "rec"
@@ -121,18 +121,18 @@ letRecDecl = do
   args <- many ident
   symbol "="
   body <- expr
-  return (name, Fix $ foldr Lam body (name : args))
+  return $ Decl name (Fix $ foldr Lam body (name : args))
 
-val :: Parser Binding
-val = ("it",) <$> expr
+val :: Parser Decl
+val = Decl "it" <$> expr
 
-decl :: Parser Binding
+decl :: Parser Decl
 decl = try letRecDecl <|> letDecl <|> val
 
-top :: Parser Binding
+top :: Parser Decl
 top = decl <* optional semi
 
-modl :: Parser [Binding]
+modl :: Parser [Decl]
 modl = many top
 
 newtype PError = PError (ParseErrorBundle Text Void)
@@ -143,5 +143,5 @@ instance Show PError where
 parseExpr :: Text -> Either PError Expr
 parseExpr s = parse (contents expr) "<stdin>" s & mapLeft PError
 
-parseModule :: Text -> Either PError [Binding]
+parseModule :: Text -> Either PError [Decl]
 parseModule s = parse (contents modl) "<stdin>" s & mapLeft PError

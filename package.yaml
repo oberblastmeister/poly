@@ -27,6 +27,7 @@ dependencies:
 - parser-combinators
 - haskeline
 - pretty
+- prettyprinter
 - mtl
 - transformers
 - containers
@@ -37,10 +38,12 @@ default-extensions:
 - LambdaCase
 - ConstraintKinds
 - FlexibleContexts
+- FlexibleInstances
 - GeneralizedNewtypeDeriving
 - ApplicativeDo
 - TupleSections
 - QuasiQuotes
+- InstanceSigs
 
 ghc-options:
 - -Wall

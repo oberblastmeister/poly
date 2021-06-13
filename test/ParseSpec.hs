@@ -6,16 +6,15 @@ import Data.Text (Text)
 import Poly.Parser
 import Poly.Syntax
 import Test.Hspec
-import Text.Megaparsec (errorBundlePretty)
 
 unwrap :: Either String r -> r
 unwrap = either error id
 
 parseExprTest :: Text -> Expr
-parseExprTest s = parseExpr s & mapLeft errorBundlePretty & unwrap
+parseExprTest s = parseExpr s & mapLeft show & unwrap
 
-parseModTest :: Text -> [Binding]
-parseModTest s = parseModule s & mapLeft errorBundlePretty & unwrap
+parseModTest :: Text -> [Decl]
+parseModTest s = parseModule s & mapLeft show & unwrap
 
 spec :: Spec
 spec = parallel $ do
@@ -35,6 +34,10 @@ spec = parallel $ do
 
         it "should parse multi lambda" $ do
           parseExprTest "\\a b -> b a" `shouldBe` Lam "a" (Lam "b" (App (Var "b") (Var "a")))
+
+        -- it "should parse app" $ do
+        --   parseExprTest "\\a -> a 234" `shouldBe` App (Lam "a" (Var "a")) (Lit $ LInt 234)
+
 
       describe "binary" $ do
         it "should parse simple" $ do
@@ -95,10 +98,10 @@ spec = parallel $ do
 
     describe "modules" $ do
       it "should parse val" $ do
-        parseModTest "1234" `shouldBe` [("it", Lit $ LInt 1234)]
-        parseModTest "True" `shouldBe` [("it", Lit $ LBool True)]
-        parseModTest "True; False" `shouldBe` [("it", Lit $ LBool True), ("it", Lit $ LBool False)]
+        parseModTest "1234" `shouldBe` [Decl "it" (Lit $ LInt 1234)]
+        parseModTest "True" `shouldBe` [Decl "it" (Lit $ LBool True)]
+        parseModTest "True; False" `shouldBe` [Decl "it" (Lit $ LBool True), Decl "it" (Lit $ LBool False)]
 
       it "should parse let decl" $ do
-        parseModTest "let x = 1234" `shouldBe` [("x", Lit $ LInt 1234)]
-        parseModTest "let rec x y = x y" `shouldBe` [("x", Fix $ Lam "x" $ Lam "y" $ App (Var "x") (Var "y"))]
+        parseModTest "let x = 1234" `shouldBe` [Decl "x" (Lit $ LInt 1234)]
+        parseModTest "let rec x y = x y" `shouldBe` [Decl "x" (Fix $ Lam "x" $ Lam "y" $ App (Var "x") (Var "y"))]

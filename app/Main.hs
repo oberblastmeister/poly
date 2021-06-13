@@ -15,9 +15,9 @@ exec s = do
   Right $ show ex ++ " : " ++ show ty
 
 run :: MonadIO m => String -> m ()
-run s = do
+run s = liftIO $ do
   let text = T.pack s
-  liftIO $ case exec text of
+  case exec text of
     Left e -> putStrLn $ "error: " ++ show e
     Right s -> putStrLn s
 
