@@ -27,11 +27,13 @@ data Expr
 
 instance PP Expr where
   pp (Var x) = pretty x
-  pp (Lam x e) = "\\" <> (pretty x) <+> annParens "->" <+> pp e
-  pp (App e1 e2) = pp e1 <+> " " <+> pp e2
-    where
-      undo = unAnnotate
+  pp (App e1 e2) = annNest (pp e1) <+> pp e2
+  pp (Lam x e) = annParensIf $ "\\" <> pretty x <+> "->" <+> pp e
+  pp (Let a b c) = "let" <+> pretty a <+> "=" <+> pp b <+> "in" <+> pp c
   pp (Lit l) = pp l
+  pp (Op o a b) = annParensIf $ pp a <+> pp o <+> pp b
+  pp (Fix a) = annParensIf $ "fix" <+> pp a
+  pp (If a b c) = "if" <+> pp a <+> "then" <+> pp b <+> "else" <+> pp c
 
 data Lit
   = LInt Integer

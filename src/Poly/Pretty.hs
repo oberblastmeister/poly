@@ -8,21 +8,15 @@ module Poly.Pretty
   )
 where
 
-import Control.Monad
 import Control.Monad.Reader
-import Control.Monad.State
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TLB
-import Debug.Trace
 import Prettyprinter hiding (pretty)
 import Prettyprinter.Internal
+import Prettyprinter.Render.Util.SimpleDocTree
 
 class PP a where
   pp :: a -> Doc SimplePoly
-
--- parensIf :: Bool -> Doc ann -> Doc ann
--- parensIf True = parens
--- parensIf False = id
 
 data SimplePoly = Parens | ParensIf | NestStart deriving (Show)
 
@@ -36,51 +30,31 @@ annNest :: Doc SimplePoly -> Doc SimplePoly
 annNest = annotate NestStart
 
 ppr :: PP a => a -> TL.Text
-ppr a = render $ layoutPretty defaultLayoutOptions $ pp a
+ppr a = render $ treeForm $ layoutPretty defaultLayoutOptions $ pp a
 
 type RenderM m = (MonadReader Bool m)
 
-render :: SimpleDocStream SimplePoly -> TL.Text
-render doc = runReader (render' doc) False
+render :: SimpleDocTree SimplePoly -> TL.Text
+render doc = TLB.toLazyText $ runReader (render' doc) False
 
-render' :: RenderM m => SimpleDocStream SimplePoly -> m TL.Text
-render' sp = TLB.toLazyText <$> go sp
-  where
-    go :: RenderM m => SimpleDocStream SimplePoly -> m TLB.Builder
-    go sp = case sp of
-      SFail -> error "render fail"
-      SEmpty -> return mempty
-      SChar c sp' -> do
-        res <- go sp'
-        return (TLB.singleton c <> res)
-      SText _ t sp' -> do
-        res <- go sp'
-        return $ TLB.fromText t <> res
-      SLine i sp' -> do
-        res <- go sp'
-        return $ "\n" <> TLB.fromText (textSpaces i) <> res
-      -- SAnnPush ann sp' -> trace ("ann push " ++ show ann) (go sp')
-      SAnnPush ann sp' -> case ann of
-        NestStart -> local (const True) (go sp')
-        Parens -> do
-          res <- go sp'
-          encloseParens res
-        ParensIf -> do
-          b <- ask
-          if b
-            then encloseParens =<< go sp'
-            else go sp'
-      SAnnPop sp' -> go sp'
+render' :: RenderM m => SimpleDocTree SimplePoly -> m TLB.Builder
+render' sp = case sp of
+  STEmpty -> return mempty
+  STChar c -> return $ TLB.singleton c
+  STText _ t -> return $ TLB.fromText t
+  STLine i -> return $ "\n" <> TLB.fromText (textSpaces i)
+  STAnn ann content -> encloseParensFor ann content
+  STConcat contents -> mconcat <$> traverse render' contents
 
--- encloseParensFor :: RenderM m => SimplePoly -> TLB.Builder -> m TLB.Builder
--- encloseParensFor sp t = case sp of
---   NestStart -> put True >> return t
---   Parens -> encloseParens t
---   ParensIf -> do
---     b <- get
---     if b
---       then encloseParens t
---       else return t
+encloseParensFor :: RenderM m => SimplePoly -> SimpleDocTree SimplePoly -> m TLB.Builder
+encloseParensFor sp content = case sp of
+  NestStart -> local (const True) (render' content)
+  Parens -> encloseParens <$> render' content
+  ParensIf -> do
+    b <- ask
+    if b
+      then encloseParens <$> render' content
+      else render' content
 
-encloseParens :: Monad m => TLB.Builder -> m TLB.Builder
-encloseParens x = return $ "(" <> x <> ")"
+encloseParens :: TLB.Builder -> TLB.Builder
+encloseParens x = "(" <> x <> ")"
