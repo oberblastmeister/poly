@@ -1,15 +1,9 @@
 module PrettySpec (spec) where
 
-import Data.Text (Text)
 import Poly.Pretty
 import Poly.Syntax
 import Poly.Type
-import Prettyprinter
-import Prettyprinter.Render.Text
 import Test.Hspec
-
--- ppT :: Pretty a => a -> Text
--- ppT = renderStrict . layoutPretty defaultLayoutOptions . pretty
 
 spec :: Spec
 spec = parallel $ do
