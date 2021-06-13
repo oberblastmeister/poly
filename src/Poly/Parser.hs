@@ -1,6 +1,8 @@
 module Poly.Parser (parseExpr, parseModule, Binding) where
 
 import Control.Monad.Combinators.Expr
+import Data.Either.Combinators
+import Data.Function ((&))
 import Data.Functor
 import Data.Text (Text)
 import Data.Void
@@ -133,8 +135,13 @@ top = decl <* optional semi
 modl :: Parser [Binding]
 modl = many top
 
-parseExpr :: Text -> Either (ParseErrorBundle Text Void) Expr
-parseExpr = parse (contents expr) "<stdin>"
+newtype PError = PError (ParseErrorBundle Text Void)
 
-parseModule :: Text -> Either (ParseErrorBundle Text Void) [Binding]
-parseModule = parse (contents modl) "<stdin>"
+instance Show PError where
+  show (PError e) = errorBundlePretty e
+
+parseExpr :: Text -> Either PError Expr
+parseExpr s = parse (contents expr) "<stdin>" s & mapLeft PError
+
+parseModule :: Text -> Either PError [Binding]
+parseModule s = parse (contents modl) "<stdin>" s & mapLeft PError

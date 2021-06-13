@@ -1,4 +1,10 @@
-module Poly.Infer where
+module Poly.Infer
+  ( inferExpr,
+    inferTop,
+    TypeError,
+    emptyTypeEnv,
+  )
+where
 
 import Control.Monad.Except
 import Control.Monad.State
@@ -13,7 +19,7 @@ import qualified Data.Text as T
 import Poly.Syntax
 import Poly.Type
 
-data Scheme = Forall [TVar] Type
+data Scheme = Forall [TVar] Type deriving (Show)
 
 newtype TypeEnv = TypeEnv (Map Name Scheme)
 
@@ -23,6 +29,7 @@ data TypeError
   = InfiniteType TVar Type
   | UnificationFail Type Type
   | UnboundVariable Name
+  deriving (Eq, Show)
 
 type Subst = Map.Map TVar Type
 
@@ -108,9 +115,6 @@ fresh = do
   put s {count = count s + 1}
   return $ TVar $ TV $ letters !! count s
 
-occursCheck :: Substitutable a => TVar -> a -> Bool
-occursCheck a t = a `Set.member` ftv t
-
 unify :: InferM m => Type -> Type -> m Subst
 unify (l `TArr` r) (l' `TArr` r') = do
   s1 <- unify l l'
@@ -118,6 +122,7 @@ unify (l `TArr` r) (l' `TArr` r') = do
   return $ s2 `compose` s1
 unify (TVar a) t = bind a t
 unify t (TVar a) = bind a t
+unify (TCon a) (TCon b) | a == b = return emptySubst
 unify t1 t2 = throwError $ UnificationFail t1 t2
 
 bind :: InferM m => TVar -> Type -> m Subst
@@ -125,6 +130,9 @@ bind a t
   | t == TVar a = return emptySubst
   | occursCheck a t = throwError $ InfiniteType a t
   | otherwise = return $ Map.singleton a t
+
+occursCheck :: Substitutable a => TVar -> a -> Bool
+occursCheck a t = a `Set.member` ftv t
 
 instantiate :: InferM m => Scheme -> m Type
 instantiate (Forall as t) = do
@@ -197,3 +205,12 @@ lookupEnv (TypeEnv env) x = do
     Just s -> do
       t <- instantiate s
       return (emptySubst, t)
+
+inferExpr :: TypeEnv -> Expr -> Either TypeError Scheme
+inferExpr env = runInfer . infer env
+
+inferTop :: TypeEnv -> [(Text, Expr)] -> Either TypeError TypeEnv
+inferTop env [] = Right env
+inferTop env ((name, ex) : xs) = case inferExpr env ex of
+  Left err -> Left err
+  Right ty -> inferTop (extend env (name, ty)) xs
