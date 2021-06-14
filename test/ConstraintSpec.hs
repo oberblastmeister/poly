@@ -9,7 +9,11 @@ import Test.Hspec.QuickCheck
 import Test.QuickCheck
 
 spec :: Spec
-spec = parallel $
+spec = parallel $ do
+  describe "uninifying" $ do
+    prop "equal types should always unify" $
+      equalTypesUnifyProp
+
   describe "substitutable" $ do
     prop "should do nothing when substituting TCon" $
       substTConProp

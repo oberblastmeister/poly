@@ -232,3 +232,6 @@ substAssociative (s1, s2, s3) st = all (== (vals !! 1)) vals
       [ apply ((s1 <> s2) <> s3),
         apply (s1 <> (s2 <> s3))
       ]
+
+equalTypesUnifyProp :: Type -> Bool
+equalTypesUnifyProp t = unifies t t == Right emptySubst
