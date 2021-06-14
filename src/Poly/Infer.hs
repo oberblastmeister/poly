@@ -30,7 +30,7 @@ data TypeError
   = InfiniteType TVar Type
   | UnificationFail Type Type
   | UnboundVariable Name
-  deriving (Eq)
+  deriving (Eq, Show)
 
 instance TextShow TypeError where
   showb (InfiniteType v t) = mconcat ["Cannot construct the infinite type: ", pprb v, " = ", pprb t]
@@ -64,7 +64,7 @@ closeOver (sub, ty) = normalize sc
     sc = generalize emptyTypeEnv (apply sub ty)
 
 normalize :: Scheme -> Scheme
-normalize (Forall ts body) = Forall (fmap snd ord) (normtype body)
+normalize (Forall _ body) = Forall (Set.fromList (fmap snd ord)) (normtype body)
   where
     ord = zip (nub $ fv body) (fmap TV letters)
 
@@ -100,7 +100,7 @@ instance Substitutable Scheme where
     where
       s' = foldr Map.delete s as
 
-  ftv (Forall as t) = ftv t `Set.difference` Set.fromList as
+  ftv (Forall as t) = ftv t `Set.difference` as
 
 instance Substitutable a => Substitutable [a] where
   apply = fmap . apply
@@ -142,21 +142,21 @@ occursCheck a t = a `Set.member` ftv t
 
 instantiate :: InferM m => Scheme -> m Type
 instantiate (Forall as t) = do
-  as' <- traverse (const fresh) as
-  let s = Map.fromList $ zip as as'
+  let asA = Map.fromSet (const fresh) as
+  s <- sequenceA asA
   return $ apply s t
 
 generalize :: TypeEnv -> Type -> Scheme
 generalize env t = Forall as t
   where
-    as = Set.toList $ ftv t `Set.difference` ftv env
+    as = ftv t `Set.difference` ftv env
 
 infer :: InferM m => TypeEnv -> Expr -> m (Subst, Type)
 infer env ex = case ex of
   Var x -> lookupEnv env x
   Lam x e -> do
     tv <- fresh
-    let env' = env `extend` (x, Forall [] tv)
+    let env' = env `extend` (x, Forall Set.empty tv)
     (s1, t1) <- infer env' e
     return (s1, apply s1 tv `TArr` t1)
   App e1 e2 -> do
@@ -223,8 +223,11 @@ lookupEnv (TypeEnv env) x = do
 inferExpr :: TypeEnv -> Expr -> Either TypeError Scheme
 inferExpr env = runInfer . infer env
 
-inferTop :: TypeEnv -> [(Text, Expr)] -> Either TypeError TypeEnv
+inferTop :: TypeEnv -> [Decl] -> Either TypeError TypeEnv
 inferTop env [] = Right env
-inferTop env ((name, ex) : xs) = case inferExpr env ex of
+inferTop env (DeclExpr ex : xs) = do
+  _ <- inferExpr env ex
+  inferTop env xs
+inferTop env (Decl name ex : xs) = case inferExpr env ex of
   Left err -> Left err
   Right ty -> inferTop (extend env (name, ty)) xs

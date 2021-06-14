@@ -12,18 +12,17 @@ lex l = parseMaybe (contents l)
 
 spec :: Spec
 spec = parallel $ do
-  describe "lexer" $ do
-    it "should lex valid idents properly" $ do
-      isJust . lex ident
-        <$> [ "hello",
-              "another",
-              "rec",
-              "let"
-            ]
-        `shouldMatchList` [ True,
-                            True,
-                            False,
-                            False
-                          ]
+  it "should lex valid idents properly" $ do
+    isJust . lex ident
+      <$> [ "hello",
+            "another",
+            "rec",
+            "let"
+          ]
+      `shouldMatchList` [ True,
+                          True,
+                          False,
+                          False
+                        ]
 
 -- lex ident "hello" `shouldSatisfy` isJust

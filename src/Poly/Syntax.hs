@@ -59,7 +59,11 @@ instance PP BinOp where
   pp Eql = "=="
   pp Neql = "!="
 
-data Decl = Decl Text Expr
+data Decl = Decl Text Expr | DeclExpr Expr
   deriving (Show, Eq)
 
-data Program = Program [Decl] Expr deriving (Show, Eq)
+instance PP Decl where
+  pp (Decl x e) = "let" <+> pretty x <+> "=" <+> pp e
+  pp (DeclExpr e) = pp e <> ";"
+
+data Program = Program [Decl] (Maybe Expr) deriving (Show, Eq)

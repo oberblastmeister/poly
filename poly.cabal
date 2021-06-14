@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Poly
+      Poly.Constraints
       Poly.Infer
       Poly.Lexer
       Poly.Parser
@@ -45,18 +46,23 @@ library
       GeneralizedNewtypeDeriving
       ApplicativeDo
       TupleSections
-      QuasiQuotes
       InstanceSigs
-  ghc-options: -Wall -Wno-unused-do-bind
+      TypeApplications
+      DeriveGeneric
+  ghc-options: -Wall
   build-depends:
-      base >=4.7 && <5
+      QuickCheck
+    , base >=4.7 && <5
     , containers
+    , dlist
     , either
+    , generic-random
     , haskeline
     , megaparsec
     , mtl
     , parser-combinators
     , prettyprinter
+    , quickcheck-instances
     , text
     , text-show
     , transformers
@@ -77,19 +83,24 @@ executable poly-exe
       GeneralizedNewtypeDeriving
       ApplicativeDo
       TupleSections
-      QuasiQuotes
       InstanceSigs
-  ghc-options: -Wall -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
+      TypeApplications
+      DeriveGeneric
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      QuickCheck
+    , base >=4.7 && <5
     , containers
+    , dlist
     , either
+    , generic-random
     , haskeline
     , megaparsec
     , mtl
     , parser-combinators
     , poly
     , prettyprinter
+    , quickcheck-instances
     , text
     , text-show
     , transformers
@@ -99,6 +110,8 @@ test-suite poly-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      ConstraintSpec
+      InferSpec
       LexerSpec
       ParseSpec
       PrettySpec
@@ -114,14 +127,17 @@ test-suite poly-test
       GeneralizedNewtypeDeriving
       ApplicativeDo
       TupleSections
-      QuasiQuotes
       InstanceSigs
-  ghc-options: -Wall -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
+      TypeApplications
+      DeriveGeneric
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
     , base >=4.7 && <5
     , containers
+    , dlist
     , either
+    , generic-random
     , haskeline
     , hspec
     , megaparsec
@@ -129,6 +145,7 @@ test-suite poly-test
     , parser-combinators
     , poly
     , prettyprinter
+    , quickcheck-instances
     , text
     , text-show
     , transformers

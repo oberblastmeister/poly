@@ -31,6 +31,10 @@ dependencies:
 - transformers
 - containers
 - either
+- dlist
+- QuickCheck
+- generic-random
+- quickcheck-instances
 
 default-extensions:
 - OverloadedStrings
@@ -41,12 +45,12 @@ default-extensions:
 - GeneralizedNewtypeDeriving
 - ApplicativeDo
 - TupleSections
-- QuasiQuotes
 - InstanceSigs
+- TypeApplications
+- DeriveGeneric
 
 ghc-options:
 - -Wall
-- -Wno-unused-do-bind
 
 library:
   source-dirs: src

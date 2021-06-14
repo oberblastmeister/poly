@@ -1,8 +1,12 @@
-module Poly.Parser (parseExpr, parseModule, Decl) where
+module Poly.Parser
+  ( parseExpr,
+    parseModule,
+    parseProgram,
+  )
+where
 
 import Control.Monad.Combinators.Expr
 import Data.Either.Combinators
-import Data.Function ((&))
 import Data.Functor
 import Data.Text (Text)
 import Data.Void
@@ -133,7 +137,7 @@ letRecDecl = do
   return $ Decl name (Fix $ foldr Lam body (name : args))
 
 val :: Parser Decl
-val = Decl "it" <$> expr
+val = DeclExpr <$> expr
 
 decl :: Parser Decl
 decl = try letRecDecl <|> letDecl <|> val
@@ -141,8 +145,14 @@ decl = try letRecDecl <|> letDecl <|> val
 top :: Parser Decl
 top = decl <* optional semi
 
+-- modRet :: Parser Expr
+-- modRet = expr
+
 modl :: Parser [Decl]
 modl = many top
+
+prog :: Parser Program
+prog = Program <$> many top <*> optional expr
 
 newtype PError = PError (ParseErrorBundle Text Void)
 
@@ -152,8 +162,14 @@ instance Show PError where
 instance TextShow PError where
   showb e = fromString $ show e
 
+parseFull :: Parser a -> Text -> Either PError a
+parseFull p s = mapLeft PError $ parse (contents p) "<stdin>" s
+
 parseExpr :: Text -> Either PError Expr
-parseExpr s = parse (contents expr) "<stdin>" s & mapLeft PError
+parseExpr = parseFull expr
 
 parseModule :: Text -> Either PError [Decl]
-parseModule s = parse (contents modl) "<stdin>" s & mapLeft PError
+parseModule = parseFull modl
+
+parseProgram :: Text -> Either PError Program
+parseProgram = parseFull prog
