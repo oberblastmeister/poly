@@ -189,8 +189,16 @@ infer env ex = case ex of
     tv <- fresh
     s3 <- unify (TArr t1 (TArr t2 tv)) (ops Map.! op)
     return (s1 `compose` s2 `compose` s3, apply s3 tv)
-  Lit (LInt _) -> return (emptySubst, TCon TInt)
-  Lit (LBool _) -> return (emptySubst, TCon TBool)
+  Lit l -> inferLit l
+
+inferLit :: InferM m => Lit -> m (Subst, Type)
+inferLit l = return (emptySubst, TCon $ litTCon l)
+
+litTCon :: Lit -> TCon
+litTCon (LInt _) = TInt
+litTCon (LBool _) = TInt
+litTCon (LStr _) = TStr
+litTCon (LChar _) = TChar
 
 extend :: TypeEnv -> (Name, Scheme) -> TypeEnv
 extend (TypeEnv env) (x, s) = TypeEnv $ Map.insert x s env

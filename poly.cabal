@@ -56,7 +56,6 @@ library
     , megaparsec
     , mtl
     , parser-combinators
-    , pretty
     , prettyprinter
     , text
     , text-show
@@ -90,7 +89,6 @@ executable poly-exe
     , mtl
     , parser-combinators
     , poly
-    , pretty
     , prettyprinter
     , text
     , text-show
@@ -130,7 +128,6 @@ test-suite poly-test
     , mtl
     , parser-combinators
     , poly
-    , pretty
     , prettyprinter
     , text
     , text-show

@@ -57,5 +57,13 @@ contents p = sc *> p <* eof
 integer :: Parser Integer
 integer = lexeme L.decimal
 
+strTok :: Parser Text
+strTok = T.pack <$> res
+  where
+    res = char '\"' *> manyTill L.charLiteral (char '\"')
+
+charTok :: Parser Char
+charTok = between (char '\'') (char '\'') L.charLiteral
+
 semi :: Parser ()
 semi = () <$ symbol ";"

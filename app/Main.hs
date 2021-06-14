@@ -32,7 +32,7 @@ main' :: IO ()
 main' = runInputT defaultSettings loop
   where
     loop = do
-      minput <- getInputLine "stlc> "
+      minput <- getInputLine "Poly> "
       case minput of
         Nothing -> outputStrLn "Goodbye."
         Just input ->

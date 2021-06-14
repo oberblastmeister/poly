@@ -43,11 +43,15 @@ instance PP Type where
 data TCon
   = TInt
   | TBool
+  | TStr
+  | TChar
   deriving (Show, Eq)
 
 instance PP TCon where
   pp TInt = "Int"
   pp TBool = "Bool"
+  pp TStr = "Str"
+  pp TChar = "Char"
 
 intBinFun :: Type
 intBinFun = TCon TInt `TArr` (TCon TInt `TArr` TCon TInt)

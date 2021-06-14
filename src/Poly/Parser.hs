@@ -5,7 +5,6 @@ import Data.Either.Combinators
 import Data.Function ((&))
 import Data.Functor
 import Data.Text (Text)
-import qualified Data.Text.Lazy.Builder as LTB
 import Data.Void
 import Poly.Lexer
 import Poly.Syntax
@@ -22,6 +21,12 @@ bool :: Parser Expr
 bool = reserved "True" $> b True <|> reserved "False" $> b False
   where
     b = Lit . LBool
+
+str :: Parser Expr
+str = Lit . LStr <$> strTok
+
+ch :: Parser Expr
+ch = Lit . LChar <$> charTok
 
 fix :: Parser Expr
 fix = lexeme "fix" *> expr <&> Fix
@@ -71,6 +76,8 @@ atomExpr =
     [ parens expr,
       bool,
       number,
+      str,
+      ch,
       ifThen,
       fix,
       try letRecIn,

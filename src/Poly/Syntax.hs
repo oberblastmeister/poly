@@ -38,11 +38,15 @@ instance PP Expr where
 data Lit
   = LInt Integer
   | LBool Bool
+  | LStr Text
+  | LChar Char
   deriving (Show, Eq, Ord)
 
 instance PP Lit where
   pp (LInt i) = pretty i
   pp (LBool b) = pretty b
+  pp (LStr s) = pretty s
+  pp (LChar c) = pretty c
 
 data BinOp = Add | Sub | Mul | Div | Eql | Neql
   deriving (Show, Eq, Ord)
