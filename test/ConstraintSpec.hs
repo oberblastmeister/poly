@@ -14,6 +14,21 @@ spec = parallel $ do
     prop "equal types should always unify" $
       equalTypesUnifyProp
 
+  describe "free type variables" $ do
+    prop "should get nothing from tcon" $
+      ftvTConProp
+
+    prop "ftv from var is itself" $
+      tVarFTVProp
+
+    prop "ftv of arr should be union" $
+      tArrFTVProp
+
+    it "should get from scheme" $ do
+      ftv (Forall [] (TVar "a")) `shouldBe` ["a"]
+      ftv (Forall ["a"] (TVar "a")) `shouldBe` []
+      ftv (Forall ["a"] (TVar "b")) `shouldBe` ["b"]
+
   describe "substitutable" $ do
     prop "should do nothing when substituting TCon" $
       substTConProp

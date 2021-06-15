@@ -38,6 +38,7 @@ dependencies:
 
 default-extensions:
 - OverloadedStrings
+- OverloadedLists
 - LambdaCase
 - ConstraintKinds
 - FlexibleContexts

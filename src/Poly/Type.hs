@@ -2,6 +2,7 @@ module Poly.Type where
 
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.String (IsString)
 import Data.Text (Text)
 import GHC.Generics
 import Generic.Random
@@ -28,7 +29,7 @@ instance PP Scheme where
         <+> pp t
 
 newtype TVar = TV Text
-  deriving (Show, TextShow, Eq, Ord, Pretty, Arbitrary)
+  deriving (Show, TextShow, Eq, Ord, Pretty, Arbitrary, IsString)
 
 instance PP TVar where
   pp (TV t) = pretty t

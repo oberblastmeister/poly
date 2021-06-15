@@ -39,6 +39,7 @@ library
       src
   default-extensions:
       OverloadedStrings
+      OverloadedLists
       LambdaCase
       ConstraintKinds
       FlexibleContexts
@@ -76,6 +77,7 @@ executable poly-exe
       app
   default-extensions:
       OverloadedStrings
+      OverloadedLists
       LambdaCase
       ConstraintKinds
       FlexibleContexts
@@ -120,6 +122,7 @@ test-suite poly-test
       test
   default-extensions:
       OverloadedStrings
+      OverloadedLists
       LambdaCase
       ConstraintKinds
       FlexibleContexts

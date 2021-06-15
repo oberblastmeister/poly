@@ -76,7 +76,7 @@ ifThen = do
 
 atomExpr :: Parser Expr
 atomExpr =
-  choice
+  choice @[]
     [ parens expr,
       bool,
       number,

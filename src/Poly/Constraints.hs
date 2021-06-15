@@ -6,6 +6,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -191,7 +192,7 @@ bind a t
   | occursCheck a t = throwError $ InfiniteType a t
   | otherwise = return (Subst $ Map.singleton a t)
 
-occursCheck :: Substitutable a => TVar -> a -> Bool
+occursCheck :: FTV a => TVar -> a -> Bool
 occursCheck a t = a `Set.member` ftv t
 
 -- Unification solver
@@ -205,42 +206,56 @@ solver (su, cs) =
 
 class Substitutable a where
   apply :: Subst -> a -> a
-  ftv :: a -> Set.Set TVar
 
 instance Substitutable Type where
   apply _ (TCon a) = TCon a
   apply (Subst s) t@(TVar a) = Map.findWithDefault t a s
   apply s (t1 `TArr` t2) = apply s t1 `TArr` apply s t2
 
-  ftv TCon {} = Set.empty
-  ftv (TVar a) = Set.singleton a
-  ftv (t1 `TArr` t2) = ftv t1 `Set.union` ftv t2
-
 instance Substitutable Scheme where
   apply (Subst s) (Forall as t) = Forall as $ apply s' t
     where
       s' = Subst $ foldr Map.delete s as
-  ftv (Forall as t) = ftv t `Set.difference` as
 
 instance Substitutable Constraint where
   apply s (t1, t2) = (apply s t1, apply s t2)
-  ftv (t1, t2) = ftv t1 `Set.union` ftv t2
 
 instance Substitutable a => Substitutable [a] where
   apply = map . apply
-  ftv = foldr (Set.union . ftv) Set.empty
 
 instance Substitutable TypeEnv where
   apply s env = Map.map (apply s) env
-  ftv env = ftv $ Map.elems env
 
 instance Substitutable Subst where
   apply s (Subst target) = Subst (apply s <$> target)
+
+class FTV a where
+  ftv :: a -> Set TVar
+
+instance FTV Type where
+  ftv TCon {} = Set.empty
+  ftv (TVar a) = Set.singleton a
+  ftv (t1 `TArr` t2) = ftv t1 `Set.union` ftv t2
+
+instance FTV Scheme where
+  ftv (Forall as t) = ftv t `Set.difference` as
+
+instance FTV Constraint where
+  ftv (t1, t2) = ftv t1 `Set.union` ftv t2
+
+instance FTV TypeEnv where
+  ftv env = ftv $ Map.elems env
+
+instance FTV a => FTV [a] where
+  ftv = foldr (Set.union . ftv) Set.empty
 
 substTConProp :: Subst -> TCon -> Bool
 substTConProp s tcon = apply s t == t
   where
     t = TCon tcon
+
+ftvTConProp :: TCon -> Bool
+ftvTConProp t = null (ftv $ TCon t)
 
 substAssociative :: (Subst, Subst, Subst) -> Subst -> Bool
 substAssociative (s1, s2, s3) st = all (== (vals !! 1)) vals
@@ -250,8 +265,14 @@ substAssociative (s1, s2, s3) st = all (== (vals !! 1)) vals
     tests :: [Subst -> Subst]
     tests =
       [ apply ((s1 <> s2) <> s3),
-        apply (s1 <> (s2 <> s3))
+        apply (s1 <> s2 <> s3)
       ]
 
 equalTypesUnifyProp :: Type -> Bool
 equalTypesUnifyProp t = unifies t t == Right emptySubst
+
+tVarFTVProp :: TVar -> Bool
+tVarFTVProp tv = ftv (TVar tv) == [tv]
+
+tArrFTVProp :: Type -> Type -> Bool
+tArrFTVProp t1 t2 = ftv (t1 ->> t2) == ftv t1 `Set.union` ftv t2
