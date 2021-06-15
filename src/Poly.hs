@@ -4,6 +4,7 @@ module Poly
     module Poly.Type,
     module Poly.Syntax,
     module Poly.Pretty,
+    module Poly.TypeEnv
   )
 where
 
@@ -12,3 +13,4 @@ import Poly.Parser
 import Poly.Pretty
 import Poly.Syntax
 import Poly.Type
+import Poly.TypeEnv

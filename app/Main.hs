@@ -3,7 +3,6 @@ module Main where
 import Control.Monad.IO.Class
 import Data.Either.Combinators
 import Data.Function
-import qualified Data.Map as Map
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.IO as TIO
@@ -16,7 +15,7 @@ import TextShow
 exec :: Text -> Either TLB.Builder TLB.Builder
 exec s = do
   ex <- parseExpr s & mapLeft showb
-  ty <- inferExpr Map.empty ex & mapLeft showb
+  ty <- inferExpr empty ex & mapLeft showb
   Right $ pprb ex <> " : " <> pprb ty
 
 tBToText :: TLB.Builder -> Text

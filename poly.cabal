@@ -33,6 +33,7 @@ library
       Poly.Pretty
       Poly.Syntax
       Poly.Type
+      Poly.TypeEnv
   other-modules:
       Paths_poly
   hs-source-dirs:

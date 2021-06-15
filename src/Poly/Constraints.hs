@@ -15,11 +15,11 @@ import Debug.Trace
 import Poly.Pretty
 import Poly.Syntax
 import Poly.Type
+import Poly.TypeEnv
 import Prettyprinter
 import Test.QuickCheck (Arbitrary)
 import TextShow
-
-type TypeEnv = Map Name Scheme
+import Prelude hiding (lookup)
 
 type Constraint = (Type, Type)
 
@@ -61,7 +61,6 @@ instance TextShow TypeError where
   showb (UnificationFail a b) = mconcat ["Cannot unify type ", pprb a, " with ", pprb b]
   showb (UnboundVariable x) = mconcat ["Name ", TLB.fromText x, " is not in scope"]
 
--- type Infer a = ReaderT TypeEnv (StateT InferState (Either TypeError)) a
 type Infer a =
   ExceptT
     TypeError
@@ -92,7 +91,7 @@ inferExpr env ex = do
 
 -- | Canonicalize and return the polymorphic toplevel type.
 closeOver :: Type -> Scheme
-closeOver = normalize . generalize Map.empty
+closeOver = normalize . generalize empty
 
 normalize :: Scheme -> Scheme
 normalize (Forall _ body) = Forall (Set.fromList simplified) (normtype body)
@@ -119,7 +118,7 @@ lookupEnv ::
   m Type
 lookupEnv x = do
   env <- ask
-  case Map.lookup x env of
+  case lookup x env of
     Nothing -> throwError $ UnboundVariable x
     Just s -> instantiate s
 
@@ -145,7 +144,7 @@ letters = T.pack <$> ([1 ..] >>= flip replicateM ['a' .. 'z'])
 
 inEnv :: MonadReader TypeEnv m => (Name, Scheme) -> m a -> m a
 inEnv (x, sc) m = do
-  let scope e = Map.insert x sc e
+  let scope e = extend e (x, sc)
   local scope m
 
 constrain, (->>) :: MonadWriter (DList Constraint) m => Type -> Type -> m ()
@@ -277,7 +276,7 @@ instance Substitutable a => Substitutable [a] where
   apply = map . apply
 
 instance Substitutable TypeEnv where
-  apply s env = Map.map (apply s) env
+  apply s (TypeEnv env) = TypeEnv $ Map.map (apply s) env
 
 instance Substitutable Subst where
   apply s (Subst target) = Subst (apply s <$> target)
@@ -297,7 +296,7 @@ instance FTV Constraint where
   ftv (t1, t2) = ftv t1 `Set.union` ftv t2
 
 instance FTV TypeEnv where
-  ftv env = ftv $ Map.elems env
+  ftv (TypeEnv env) = ftv $ Map.elems env
 
 instance FTV a => FTV [a] where
   ftv = foldr (Set.union . ftv) Set.empty
