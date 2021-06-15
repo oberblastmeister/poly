@@ -1,12 +1,4 @@
-module Poly.Syntax
-  ( Expr (..),
-    Lit (..),
-    Name,
-    BinOp (..),
-    Program (..),
-    Decl (..),
-  )
-where
+module Poly.Syntax where
 
 import Data.Text (Text)
 import Poly.Pretty
@@ -36,10 +28,10 @@ instance PP Expr where
   pp (If a b c) = "if" <+> pp a <+> "then" <+> pp b <+> "else" <+> pp c
 
 data Lit
-  = LInt Integer
-  | LBool Bool
-  | LStr Text
-  | LChar Char
+  = LInt !Integer
+  | LBool !Bool
+  | LStr !Text
+  | LChar !Char
   deriving (Show, Eq, Ord)
 
 instance PP Lit where

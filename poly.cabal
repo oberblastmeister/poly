@@ -27,6 +27,7 @@ library
   exposed-modules:
       Poly
       Poly.Constraints
+      Poly.Eval
       Poly.Infer
       Poly.Lexer
       Poly.Parser

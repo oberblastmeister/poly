@@ -1,18 +1,9 @@
-module Poly.Pretty
-  ( ppr,
-    pprb,
-    SimplePoly (..),
-    PP (..),
-    annNest,
-    annParens,
-    annParensIf,
-  )
-where
+module Poly.Pretty where
 
 import Control.Monad.Reader
+import Data.Text (Text)
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TLB
-import Data.Text (Text)
 import Prettyprinter hiding (pretty)
 import Prettyprinter.Internal
 import Prettyprinter.Render.Util.SimpleDocTree

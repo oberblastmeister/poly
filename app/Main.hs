@@ -16,7 +16,8 @@ exec :: Text -> Either TLB.Builder TLB.Builder
 exec s = do
   ex <- parseExpr s & mapLeft showb
   ty <- inferExpr empty ex & mapLeft showb
-  Right $ pprb ex <> " : " <> pprb ty
+  let val = evalExpr ex
+  Right $ pprb val <> " : " <> pprb ty
 
 tBToText :: TLB.Builder -> Text
 tBToText = TL.toStrict . TLB.toLazyText

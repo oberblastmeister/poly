@@ -4,13 +4,39 @@ module Poly
     module Poly.Type,
     module Poly.Syntax,
     module Poly.Pretty,
-    module Poly.TypeEnv
+    module Poly.TypeEnv,
+    module Poly.Eval,
   )
 where
 
-import Poly.Constraints
-import Poly.Parser
+import Poly.Constraints (inferExpr)
+import Poly.Eval (evalExpr)
+import Poly.Parser (parseExpr, parseModule, parseProgram)
 import Poly.Pretty
+  ( PP (..),
+    annNest,
+    annParens,
+    annParensIf,
+    ppr,
+    pprb,
+  )
 import Poly.Syntax
+  ( BinOp (..),
+    Decl (..),
+    Expr (..),
+    Lit (..),
+    Name,
+    Program (..),
+  )
 import Poly.Type
+  ( Scheme (..),
+    TCon (..),
+    TVar (..),
+    Type (..),
+    intBinFun,
+    tBool,
+    tChar,
+    tInt,
+    tStr,
+  )
 import Poly.TypeEnv
