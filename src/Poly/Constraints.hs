@@ -9,8 +9,10 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
+import Poly.Pretty
 import Poly.Syntax
 import Poly.Type
+import Prettyprinter
 import Test.QuickCheck (Arbitrary)
 
 type TypeEnv = Map Name Scheme
@@ -21,8 +23,13 @@ type Unifier = (Subst, [Constraint])
 
 type Solve a = Either TypeError a
 
+type SolveM m = (MonadError TypeError m)
+
 newtype Subst = Subst (Map.Map TVar Type)
   deriving (Eq, Ord, Show, Arbitrary)
+
+instance PP Subst where
+  pp (Subst s) = "{" <+> sep [pp k <+> "-->" <+> pp v | (k, v) <- Map.toList s] <+> "}"
 
 instance Semigroup Subst where
   subst1@(Subst s1) <> subst2 = Subst (s1 `Map.union` s2)
@@ -51,7 +58,7 @@ type InferM m =
   )
 
 -- | Run the constraint solver
-runSolve :: [Constraint] -> Either TypeError Subst
+runSolve :: SolveM m => [Constraint] -> m Subst
 runSolve cs = solver st
   where
     st = (emptySubst, cs)
@@ -77,7 +84,7 @@ generalize env t = Forall as t
   where
     as = ftv t `Set.difference` ftv env
 
-fresh :: InferM m => m Type
+fresh :: MonadState InferState m => m Type
 fresh = do
   s <- get
   put s {count = count s + 1}
@@ -93,8 +100,7 @@ inEnv (x, sc) m = do
 
 infer :: InferM m => Expr -> m (Type, [Constraint])
 infer expr = case expr of
-  Lit (LInt _) -> return (TCon TInt, [])
-  Lit (LBool _) -> return (TCon TBool, [])
+  Lit l -> inferLit l
   Var x -> do
     t <- lookupEnv x
     return (t, [])
@@ -107,15 +113,7 @@ infer expr = case expr of
     (t2, c2) <- infer e2
     tv <- fresh
     return (tv, c1 ++ c2 ++ [(t1, t2 `TArr` tv)])
-  Let x e1 e2 -> do
-    env <- ask
-    (t1, c1) <- infer e1
-    case runSolve c1 of
-      Left err -> throwError err
-      Right sub -> do
-        let sc = generalize (apply sub env) (apply sub t1)
-        (t2, c2) <- inEnv (x, sc) $ local (apply sub) (infer e2)
-        return (t2, c1 ++ c2)
+  Let x e1 e2 -> inferLet x e1 e2
   Fix e1 -> do
     (t1, c1) <- infer e1
     tv <- fresh
@@ -132,7 +130,24 @@ infer expr = case expr of
     (t2, c2) <- infer tr
     (t3, c3) <- infer fl
     return (t2, c1 ++ c2 ++ c3 ++ [(t1, TCon TBool), (t2, t3)])
-  _ -> error "todo"
+
+inferLit :: InferM m => Lit -> m (Type, [Constraint])
+inferLit lit = return (TCon $ litTy lit, [])
+
+litTy :: Lit -> TCon
+litTy (LInt _) = TInt
+litTy (LBool _) = TBool
+litTy (LStr _) = TStr
+litTy (LChar _) = TChar
+
+inferLet :: InferM m => Name -> Expr -> Expr -> m (Type, [Constraint])
+inferLet x e e' = do
+  env <- ask
+  (t1, c1) <- infer e
+  sub <- runSolve c1
+  let sc = generalize (apply sub env) (apply sub t1)
+  (t2, c2) <- inEnv (x, sc) $ local (apply sub) (infer e')
+  return (t2, c1 ++ c2)
 
 ops :: Map BinOp Type
 ops =
@@ -140,7 +155,7 @@ ops =
     [ (Add, intBinFun),
       (Mul, intBinFun),
       (Sub, intBinFun),
-      (Eql, TCon TInt `TArr` (TCon TInt `TArr` TCon TBool))
+      (Eql, tInt ->> tInt ->> tBool)
     ]
 
 emptySubst :: Subst
@@ -159,13 +174,13 @@ compose :: Subst -> Subst -> Subst
       s2
       `Map.union` s1
 
-unifies :: Type -> Type -> Solve Subst
+unifies :: SolveM m => Type -> Type -> m Subst
 unifies t1 t2 | t1 == t2 = return emptySubst
 unifies (TVar v) t = v `bind` t
 unifies t (TVar v) = v `bind` t
 unifies t1 t2 = throwError $ UnificationFail t1 t2
 
-bind :: TVar -> Type -> Solve Subst
+bind :: SolveM m => TVar -> Type -> m Subst
 bind a t
   | t == TVar a = return emptySubst
   | occursCheck a t = throwError $ InfiniteType a t
@@ -175,7 +190,7 @@ occursCheck :: Substitutable a => TVar -> a -> Bool
 occursCheck a t = a `Set.member` ftv t
 
 -- Unification solver
-solver :: Unifier -> Solve Subst
+solver :: SolveM m => Unifier -> m Subst
 solver (su, cs) =
   case cs of
     [] -> return su
