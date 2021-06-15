@@ -2,8 +2,8 @@ module Poly.Constraints where
 
 import Control.Monad.Except
 import Control.Monad.RWS
-import Control.Monad.Reader
-import Control.Monad.State
+import Data.DList (DList)
+import qualified Data.DList as DL
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
@@ -61,17 +61,27 @@ instance TextShow TypeError where
   showb (UnificationFail a b) = mconcat ["Cannot unify type ", pprb a, " with ", pprb b]
   showb (UnboundVariable x) = mconcat ["Name ", TLB.fromText x, " is not in scope"]
 
-type Infer a = ReaderT TypeEnv (StateT InferState (Either TypeError)) a
+-- type Infer a = ReaderT TypeEnv (StateT InferState (Either TypeError)) a
+type Infer a =
+  ExceptT
+    TypeError
+    ( RWS TypeEnv (DList Constraint) InferState
+    )
+    a
 
 type InferM m =
   ( MonadReader TypeEnv m,
     MonadState InferState m,
+    MonadWriter (DList Constraint) m,
     MonadError TypeError m
   )
 
 -- | Solve for the toplevel type of an expression in a given environment
-runInfer :: TypeEnv -> Infer (Type, [Constraint]) -> Either TypeError (Type, [Constraint])
-runInfer env m = evalStateT (runReaderT m env) initInfer
+runInfer :: TypeEnv -> Infer Type -> Either TypeError (Type, [Constraint])
+runInfer env m = do
+  let (cs, res) = evalRWS (runExceptT m) env initInfer
+  cs' <- cs
+  return (cs', DL.toList res)
 
 -- | Solve for the toplevel type of an expression in a given environment
 inferExpr :: TypeEnv -> Expr -> Either TypeError Scheme
@@ -117,7 +127,7 @@ instantiate :: InferM m => Scheme -> m Type
 instantiate (Forall as t) = do
   let sA = Map.fromSet (const fresh) as
   s <- sequenceA sA
-  return $ apply (Subst (trace (show s) s)) t
+  return $ apply (Subst s) t
 
 generalize :: TypeEnv -> Type -> Scheme
 generalize env t = Forall as t
@@ -138,46 +148,54 @@ inEnv (x, sc) m = do
   let scope e = Map.insert x sc e
   local scope m
 
-infer :: InferM m => Expr -> m (Type, [Constraint])
+constrain, (->>) :: MonadWriter (DList Constraint) m => Type -> Type -> m ()
+constrain t1 t2 = do
+  tell [(t1, t2)]
+(->>) = constrain
+
+infer :: InferM m => Expr -> m Type
 infer expr = case expr of
   Lit l -> inferLit l
-  Var x -> do
-    t <- lookupEnv x
-    return (t, [])
+  Var x -> lookupEnv x
   Lam x e -> do
     tv <- fresh
-    (t, c) <- inEnv (x, Forall [] tv) (infer e)
-    return (tv :->: t, c)
+    t <- inEnv (x, Forall [] tv) (infer e)
+    return $ tv :->: t
   App e1 e2 -> do
-    (t1, c1) <- infer e1
-    (t2, c2) <- infer e2
+    t1 <- infer e1
+    t2 <- infer e2
     tv <- fresh
-    return (tv, c1 ++ c2 ++ [(t1, t2 :->: tv)])
+    constrain t1 (t2 :->: tv)
+    return tv
   Let x e1 e2 -> inferLet x e1 e2
   Fix e1 -> do
-    (t1, c1) <- infer e1
+    t1 <- infer e1
     tv <- fresh
-    return (tv, c1 ++ [(tv :->: tv, t1)])
+    constrain (tv :->: tv) t1
+    return tv
   Op op e1 e2 -> do
-    (t1, c1) <- infer e1
-    (t2, c2) <- infer e2
+    t1 <- infer e1
+    t2 <- infer e2
     tv <- fresh
     let u1 = t1 :->: t2 :->: tv
         u2 = ops Map.! op
-    return (tv, c1 ++ c2 ++ [(u1, u2)])
+    constrain u1 u2
+    return tv
   If cond tr fl -> do
-    (t1, c1) <- infer cond
-    (t2, c2) <- joinTy tr fl
-    return (t2, c1 ++ c2 ++ [(t1, TCon TBool)])
+    t1 <- infer cond
+    t2 <- joinTy tr fl
+    constrain t1 (TCon TBool)
+    return t2
 
-joinTy :: InferM m => Expr -> Expr -> m (Type, [Constraint])
+joinTy :: InferM m => Expr -> Expr -> m Type
 joinTy e1 e2 = do
-  (t1, c1) <- infer e1
-  (t2, c2) <- infer e2
-  return (t2, c1 ++ c2 ++ [(t1, t2)])
+  t1 <- infer e1
+  t2 <- infer e2
+  constrain t1 t2
+  return t2
 
-inferLit :: InferM m => Lit -> m (Type, [Constraint])
-inferLit lit = return (TCon $ litTy lit, [])
+inferLit :: InferM m => Lit -> m Type
+inferLit lit = return (TCon $ litTy lit)
 
 litTy :: Lit -> TCon
 litTy (LInt _) = TInt
@@ -185,14 +203,13 @@ litTy (LBool _) = TBool
 litTy (LStr _) = TStr
 litTy (LChar _) = TChar
 
-inferLet :: InferM m => Name -> Expr -> Expr -> m (Type, [Constraint])
+inferLet :: InferM m => Name -> Expr -> Expr -> m Type
 inferLet x e e' = do
   env <- ask
-  (t1, c1) <- infer e
-  sub <- runSolve c1
+  (t1, c1) <- listen (infer e)
+  sub <- runSolve $ DL.toList c1
   let sc = generalize (apply sub env) (apply sub t1)
-  (t2, c2) <- inEnv (x, sc) $ local (apply sub) (infer e')
-  return (t2, c1 ++ c2)
+  inEnv (x, sc) $ local (apply sub) (infer e')
 
 ops :: Map BinOp Type
 ops =
