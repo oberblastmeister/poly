@@ -10,11 +10,14 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as TLB
+import Debug.Trace
 import Poly.Pretty
 import Poly.Syntax
 import Poly.Type
 import Prettyprinter
 import Test.QuickCheck (Arbitrary)
+import TextShow
 
 type TypeEnv = Map Name Scheme
 
@@ -35,7 +38,7 @@ instance PP Subst where
 instance Semigroup Subst where
   subst1@(Subst s1) <> subst2 = Subst (s1 `Map.union` s2)
     where
-      Subst s2 = apply subst1 subst2
+      Subst s2 = subst1 @@ subst2
 
 instance Monoid Subst where
   mappend = (<>)
@@ -44,11 +47,19 @@ instance Monoid Subst where
 
 newtype InferState = InferState {count :: Int}
 
+initInfer :: InferState
+initInfer = InferState {count = 0}
+
 data TypeError
   = InfiniteType TVar Type
   | UnificationFail Type Type
   | UnboundVariable Name
   deriving (Eq, Show)
+
+instance TextShow TypeError where
+  showb (InfiniteType v t) = mconcat ["Cannot construct the infinite type: ", pprb v, " = ", pprb t]
+  showb (UnificationFail a b) = mconcat ["Cannot unify type ", pprb a, " with ", pprb b]
+  showb (UnboundVariable x) = mconcat ["Name ", TLB.fromText x, " is not in scope"]
 
 type Infer a = ReaderT TypeEnv (StateT InferState (Either TypeError)) a
 
@@ -57,6 +68,34 @@ type InferM m =
     MonadState InferState m,
     MonadError TypeError m
   )
+
+-- | Solve for the toplevel type of an expression in a given environment
+runInfer :: TypeEnv -> Infer (Type, [Constraint]) -> Either TypeError (Type, [Constraint])
+runInfer env m = evalStateT (runReaderT m env) initInfer
+
+-- | Solve for the toplevel type of an expression in a given environment
+inferExpr :: TypeEnv -> Expr -> Either TypeError Scheme
+inferExpr env ex = do
+  (ty, cs) <- runInfer env (infer ex)
+  subst <- runSolve cs
+  return $ closeOver $ apply subst ty
+
+-- | Canonicalize and return the polymorphic toplevel type.
+closeOver :: Type -> Scheme
+closeOver = normalize . generalize Map.empty
+
+normalize :: Scheme -> Scheme
+normalize (Forall _ body) = Forall (Set.fromList simplified) (normtype body)
+  where
+    pool = map TV letters
+
+    ord = Map.fromList $ zip (Set.toList ftvs) simplified
+    simplified = take (Set.size ftvs) pool
+    ftvs = ftv body
+
+    normtype (a :->: b) = normtype a :->: normtype b
+    normtype (TCon a) = TCon a
+    normtype (TVar a) = TVar $ ord Map.! a
 
 -- | Run the constraint solver
 runSolve :: SolveM m => [Constraint] -> m Subst
@@ -78,7 +117,7 @@ instantiate :: InferM m => Scheme -> m Type
 instantiate (Forall as t) = do
   let sA = Map.fromSet (const fresh) as
   s <- sequenceA sA
-  return $ apply (Subst s) t
+  return $ apply (Subst (trace (show s) s)) t
 
 generalize :: TypeEnv -> Type -> Scheme
 generalize env t = Forall as t
@@ -107,23 +146,23 @@ infer expr = case expr of
     return (t, [])
   Lam x e -> do
     tv <- fresh
-    (t, c) <- inEnv (x, Forall Set.empty tv) (infer e)
-    return (tv `TArr` t, c)
+    (t, c) <- inEnv (x, Forall [] tv) (infer e)
+    return (tv :->: t, c)
   App e1 e2 -> do
     (t1, c1) <- infer e1
     (t2, c2) <- infer e2
     tv <- fresh
-    return (tv, c1 ++ c2 ++ [(t1, t2 `TArr` tv)])
+    return (tv, c1 ++ c2 ++ [(t1, t2 :->: tv)])
   Let x e1 e2 -> inferLet x e1 e2
   Fix e1 -> do
     (t1, c1) <- infer e1
     tv <- fresh
-    return (tv, c1 ++ [(tv `TArr` tv, t1)])
+    return (tv, c1 ++ [(tv :->: tv, t1)])
   Op op e1 e2 -> do
     (t1, c1) <- infer e1
     (t2, c2) <- infer e2
     tv <- fresh
-    let u1 = t1 ->> t2 ->> tv
+    let u1 = t1 :->: t2 :->: tv
         u2 = ops Map.! op
     return (tv, c1 ++ c2 ++ [(u1, u2)])
   If cond tr fl -> do
@@ -161,29 +200,20 @@ ops =
     [ (Add, intBinFun),
       (Mul, intBinFun),
       (Sub, intBinFun),
-      (Eql, tInt ->> tInt ->> tBool)
+      (Eql, tInt :->: tInt :->: tBool)
     ]
 
 emptySubst :: Subst
 emptySubst = mempty
 
--- | Compose substitutions
-compose :: Subst -> Subst -> Subst
-(Subst s1) `compose` (Subst s2) =
-  Subst $
-    Map.map
-      ( apply
-          ( Subst
-              s1
-          )
-      )
-      s2
-      `Map.union` s1
-
 unifies :: SolveM m => Type -> Type -> m Subst
 unifies t1 t2 | t1 == t2 = return emptySubst
 unifies (TVar v) t = v `bind` t
 unifies t (TVar v) = v `bind` t
+unifies (t1 :->: ts1) (t2 :->: ts2) = do
+  su1 <- unifies t1 t2
+  su2 <- unifies (su1 @@ ts1) (su1 @@ ts2)
+  return (su2 <> su1)
 unifies t1 t2 = throwError $ UnificationFail t1 t2
 
 bind :: SolveM m => TVar -> Type -> m Subst
@@ -202,15 +232,21 @@ solver (su, cs) =
     [] -> return su
     ((t1, t2) : cs0) -> do
       su1 <- unifies t1 t2
-      solver (su1 `compose` su, apply su1 cs0)
+      solver (su1 <> su, apply su1 cs0)
 
 class Substitutable a where
   apply :: Subst -> a -> a
+  apply = (@@)
+
+  (@@) :: Subst -> a -> a
+  (@@) = apply
+
+  {-# MINIMAL apply | (@@) #-}
 
 instance Substitutable Type where
   apply _ (TCon a) = TCon a
   apply (Subst s) t@(TVar a) = Map.findWithDefault t a s
-  apply s (t1 `TArr` t2) = apply s t1 `TArr` apply s t2
+  apply s (t1 :->: t2) = apply s t1 :->: apply s t2
 
 instance Substitutable Scheme where
   apply (Subst s) (Forall as t) = Forall as $ apply s' t
@@ -235,7 +271,7 @@ class FTV a where
 instance FTV Type where
   ftv TCon {} = Set.empty
   ftv (TVar a) = Set.singleton a
-  ftv (t1 `TArr` t2) = ftv t1 `Set.union` ftv t2
+  ftv (t1 :->: t2) = ftv t1 `Set.union` ftv t2
 
 instance FTV Scheme where
   ftv (Forall as t) = ftv t `Set.difference` as
@@ -275,4 +311,4 @@ tVarFTVProp :: TVar -> Bool
 tVarFTVProp tv = ftv (TVar tv) == [tv]
 
 tArrFTVProp :: Type -> Type -> Bool
-tArrFTVProp t1 t2 = ftv (t1 ->> t2) == ftv t1 `Set.union` ftv t2
+tArrFTVProp t1 t2 = ftv (t1 :->: t2) == ftv t1 `Set.union` ftv t2

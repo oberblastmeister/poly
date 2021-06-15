@@ -1,5 +1,5 @@
 module Poly
-  ( module Poly.Infer,
+  ( module Poly.Constraints,
     module Poly.Parser,
     module Poly.Type,
     module Poly.Syntax,
@@ -7,7 +7,7 @@ module Poly
   )
 where
 
-import Poly.Infer
+import Poly.Constraints
 import Poly.Parser
 import Poly.Pretty
 import Poly.Syntax

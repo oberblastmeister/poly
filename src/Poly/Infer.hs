@@ -69,10 +69,10 @@ normalize (Forall _ body) = Forall (Set.fromList (fmap snd ord)) (normtype body)
     ord = zip (nub $ fv body) (fmap TV letters)
 
     fv (TVar a) = [a]
-    fv (TArr a b) = fv a ++ fv b
+    fv (a :->: b) = fv a ++ fv b
     fv (TCon _) = []
 
-    normtype (TArr a b) = TArr (normtype a) (normtype b)
+    normtype (a :->: b) = normtype a :->: normtype b
     normtype (TCon a) = TCon a
     normtype (TVar a) =
       case lookup a ord of
@@ -89,11 +89,11 @@ class Substitutable a where
 instance Substitutable Type where
   apply _ (TCon a) = TCon a
   apply s t@(TVar a) = Map.findWithDefault t a s
-  apply s (t1 `TArr` t2) = apply s t1 `TArr` apply s t2
+  apply s (t1 :->: t2) = apply s t1 :->: apply s t2
 
   ftv TCon {} = Set.empty
   ftv (TVar a) = Set.singleton a
-  ftv (t1 `TArr` t2) = ftv t1 `Set.union` ftv t2
+  ftv (t1 :->: t2) = ftv t1 `Set.union` ftv t2
 
 instance Substitutable Scheme where
   apply s (Forall as t) = Forall as $ apply s' t
@@ -122,7 +122,7 @@ fresh = do
   return $ TVar $ TV $ letters !! count s
 
 unify :: InferM m => Type -> Type -> m Subst
-unify (l `TArr` r) (l' `TArr` r') = do
+unify (l :->: r) (l' :->: r') = do
   s1 <- unify l l'
   s2 <- unify (apply s1 r) (apply s1 r')
   return $ s2 `compose` s1
@@ -158,12 +158,12 @@ infer env ex = case ex of
     tv <- fresh
     let env' = env `extend` (x, Forall Set.empty tv)
     (s1, t1) <- infer env' e
-    return (s1, apply s1 tv `TArr` t1)
+    return (s1, apply s1 tv :->: t1)
   App e1 e2 -> do
     tv <- fresh
     (s1, t1) <- infer env e1
     (s2, t2) <- infer (apply s1 env) e2
-    s3 <- unify (apply s2 t1) (TArr t2 tv)
+    s3 <- unify (apply s2 t1) (t2 :->: tv)
     return (s3 `compose` s2 `compose` s1, apply s3 tv)
   Let x e1 e2 -> do
     (s1, t1) <- infer env e1
@@ -181,13 +181,13 @@ infer env ex = case ex of
   Fix e1 -> do
     (s1, t) <- infer env e1
     tv <- fresh
-    s2 <- unify (TArr tv tv) t
+    s2 <- unify (tv :->: tv) t
     return (s2, apply s1 tv)
   Op op e1 e2 -> do
     (s1, t1) <- infer env e1
     (s2, t2) <- infer env e2
     tv <- fresh
-    s3 <- unify (TArr t1 (TArr t2 tv)) (ops Map.! op)
+    s3 <- unify (t1 :->: t2 :->: tv) (ops Map.! op)
     return (s1 `compose` s2 `compose` s3, apply s3 tv)
   Lit l -> inferLit l
 
@@ -209,7 +209,7 @@ ops =
     [ (Add, intBinFun),
       (Mul, intBinFun),
       (Sub, intBinFun),
-      (Eql, TCon TInt `TArr` (TCon TInt `TArr` TCon TBool))
+      (Eql, TCon TInt :->: TCon TInt :->: TCon TBool)
     ]
 
 lookupEnv :: InferM m => TypeEnv -> Name -> m (Subst, Type)

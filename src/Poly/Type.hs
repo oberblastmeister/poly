@@ -25,7 +25,7 @@ instance PP Scheme where
                 <$> Set.toList
                   ts
           )
-        <+> "."
+        <> "."
         <+> pp t
 
 newtype TVar = TV Text
@@ -37,8 +37,11 @@ instance PP TVar where
 data Type
   = TVar TVar
   | TCon TCon
-  | TArr Type Type
+  -- | TArr Type Type
+  | Type :->: Type
   deriving (Show, Eq, Ord, Generic)
+
+infixr 9 :->:
 
 instance Arbitrary Type where
   arbitrary = genericArbitraryU
@@ -46,19 +49,17 @@ instance Arbitrary Type where
 tVar :: Text -> Type
 tVar = TVar . TV
 
-infixr 9 `TArr`
+-- (->>) :: Type -> Type -> Type
+-- (->>) = TArr
 
-(->>) :: Type -> Type -> Type
-(->>) = TArr
-
-infixr 9 ->>
+-- infixr 9 ->>
 
 instance PP Type where
-  pp (TArr t1 t2) = shouldParens (isArr t1) (annNest $ pp t1) <+> "->" <+> pp t2
+  pp (t1 :->: t2) = shouldParens (isArr t1) (annNest $ pp t1) <+> "->" <+> pp t2
     where
       shouldParens True = annParens
       shouldParens False = id
-      isArr TArr {} = True
+      isArr (:->:) {} = True
       isArr _ = False
   pp (TVar v) = pretty v
   pp (TCon t) = pp t
@@ -86,4 +87,4 @@ tStr = TCon TStr
 tChar = TCon TChar
 
 intBinFun :: Type
-intBinFun = TCon TInt `TArr` (TCon TInt `TArr` TCon TInt)
+intBinFun = TCon TInt :->: TCon TInt :->: TCon TInt

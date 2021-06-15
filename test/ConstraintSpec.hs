@@ -27,7 +27,7 @@ spec = parallel $ do
     it "should get from scheme" $ do
       ftv (Forall [] (TVar "a")) `shouldBe` ["a"]
       ftv (Forall ["a"] (TVar "a")) `shouldBe` []
-      ftv (Forall ["a"] (TVar "b")) `shouldBe` ["b"]
+      ftv (Forall ["a"] (TVar "b" ->> TVar "a")) `shouldBe` ["b"]
 
   describe "substitutable" $ do
     prop "should do nothing when substituting TCon" $
