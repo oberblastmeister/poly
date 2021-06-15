@@ -122,14 +122,19 @@ infer expr = case expr of
     (t1, c1) <- infer e1
     (t2, c2) <- infer e2
     tv <- fresh
-    let u1 = t1 `TArr` (t2 `TArr` tv)
+    let u1 = t1 ->> t2 ->> tv
         u2 = ops Map.! op
     return (tv, c1 ++ c2 ++ [(u1, u2)])
   If cond tr fl -> do
     (t1, c1) <- infer cond
-    (t2, c2) <- infer tr
-    (t3, c3) <- infer fl
-    return (t2, c1 ++ c2 ++ c3 ++ [(t1, TCon TBool), (t2, t3)])
+    (t2, c2) <- joinTy tr fl
+    return (t2, c1 ++ c2 ++ [(t1, TCon TBool)])
+
+joinTy :: InferM m => Expr -> Expr -> m (Type, [Constraint])
+joinTy e1 e2 = do
+  (t1, c1) <- infer e1
+  (t2, c2) <- infer e2
+  return (t2, c1 ++ c2 ++ [(t1, t2)])
 
 inferLit :: InferM m => Lit -> m (Type, [Constraint])
 inferLit lit = return (TCon $ litTy lit, [])
