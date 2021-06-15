@@ -32,6 +32,12 @@ type SolveM m = (MonadError TypeError m)
 newtype Subst = Subst (Map.Map TVar Type)
   deriving (Eq, Ord, Show, Arbitrary)
 
+singleSubst :: TVar -> Type -> Subst
+singleSubst tv ty = Subst $ Map.singleton tv ty
+
+emptySubst :: Subst
+emptySubst = Subst Map.empty
+
 instance PP Subst where
   pp (Subst s) = "{" <+> sep [pp k <+> "-->" <+> pp v | (k, v) <- Map.toList s] <+> "}"
 
@@ -43,7 +49,7 @@ instance Semigroup Subst where
 instance Monoid Subst where
   mappend = (<>)
 
-  mempty = Subst Map.empty
+  mempty = emptySubst
 
 newtype InferState = InferState {count :: Int}
 
@@ -78,9 +84,9 @@ type InferM m =
 -- | Solve for the toplevel type of an expression in a given environment
 runInfer :: TypeEnv -> Infer Type -> Either TypeError (Type, [Constraint])
 runInfer env m = do
-  let (cs, res) = evalRWS (runExceptT m) env initInfer
-  cs' <- cs
-  return (cs', DL.toList res)
+  let (ty, res) = evalRWS (runExceptT m) env initInfer
+  ty' <- ty
+  return (ty', DL.toList res)
 
 -- | Solve for the toplevel type of an expression in a given environment
 inferExpr :: TypeEnv -> Expr -> Either TypeError Scheme
@@ -112,17 +118,7 @@ runSolve cs = solver st
   where
     st = (emptySubst, cs)
 
-lookupEnv ::
-  InferM m =>
-  Name ->
-  m Type
-lookupEnv x = do
-  env <- ask
-  case lookup x env of
-    Nothing -> throwError $ UnboundVariable x
-    Just s -> instantiate s
-
-instantiate :: InferM m => Scheme -> m Type
+instantiate :: MonadState InferState m => Scheme -> m Type
 instantiate (Forall as t) = do
   let sA = Map.fromSet (const fresh) as
   s <- sequenceA sA
@@ -155,36 +151,13 @@ constrain t1 t2 = do
 infer :: InferM m => Expr -> m Type
 infer expr = case expr of
   Lit l -> inferLit l
-  Var x -> lookupEnv x
-  Lam x e -> do
-    tv <- fresh
-    t <- inEnv (x, Forall [] tv) (infer e)
-    return $ tv :->: t
-  App e1 e2 -> do
-    t1 <- infer e1
-    t2 <- infer e2
-    tv <- fresh
-    constrain t1 (t2 :->: tv)
-    return tv
+  Var x -> inferVar x
+  Lam x e -> inferLam x e
+  App e1 e2 -> inferApp e1 e2
   Let x e1 e2 -> inferLet x e1 e2
-  Fix e1 -> do
-    t1 <- infer e1
-    tv <- fresh
-    constrain (tv :->: tv) t1
-    return tv
-  Op op e1 e2 -> do
-    t1 <- infer e1
-    t2 <- infer e2
-    tv <- fresh
-    let u1 = t1 :->: t2 :->: tv
-        u2 = ops Map.! op
-    constrain u1 u2
-    return tv
-  If cond tr fl -> do
-    t1 <- infer cond
-    t2 <- joinTy tr fl
-    constrain t1 (TCon TBool)
-    return t2
+  Fix e -> inferFix e
+  Op op e1 e2 -> inferOp op e1 e2
+  If cond tr fl -> inferIf cond tr fl
 
 joinTy :: InferM m => Expr -> Expr -> m Type
 joinTy e1 e2 = do
@@ -210,6 +183,51 @@ inferLet x e e' = do
   let sc = generalize (apply sub env) (apply sub t1)
   inEnv (x, sc) $ local (apply sub) (infer e')
 
+inferVar :: InferM m => Name -> m Type
+inferVar x = do
+  env <- ask
+  case lookup x env of
+    Nothing -> throwError $ UnboundVariable x
+    Just s -> instantiate s
+
+inferApp :: InferM m => Expr -> Expr -> m Type
+inferApp e1 e2 = do
+  t1 <- infer e1
+  t2 <- infer e2
+  tv <- fresh
+  constrain t1 (t2 :->: tv)
+  return tv
+
+inferLam :: InferM m => Name -> Expr -> m Type
+inferLam x e = do
+  tv <- fresh
+  t <- inEnv (x, Forall [] tv) (infer e)
+  return $ tv :->: t
+
+inferFix :: InferM m => Expr -> m Type
+inferFix e = do
+  t1 <- infer e
+  tv <- fresh
+  constrain (tv :->: tv) t1
+  return tv
+
+inferOp :: InferM m => BinOp -> Expr -> Expr -> m Type
+inferOp op e1 e2 = do
+  t1 <- infer e1
+  t2 <- infer e2
+  tv <- fresh
+  let u1 = t1 :->: t2 :->: tv
+      u2 = ops Map.! op
+  constrain u1 u2
+  return tv
+
+inferIf :: InferM m => Expr -> Expr -> Expr -> m Type
+inferIf cond tr fl = do
+  t1 <- infer cond
+  t2 <- joinTy tr fl
+  constrain t1 (TCon TBool)
+  return t2
+
 ops :: Map BinOp Type
 ops =
   Map.fromList
@@ -218,9 +236,6 @@ ops =
       (Sub, intBinFun),
       (Eql, tInt :->: tInt :->: tBool)
     ]
-
-emptySubst :: Subst
-emptySubst = mempty
 
 unifies :: SolveM m => Type -> Type -> m Subst
 unifies t1 t2 | t1 == t2 = return emptySubst
@@ -236,7 +251,7 @@ bind :: SolveM m => TVar -> Type -> m Subst
 bind a t
   | t == TVar a = return emptySubst
   | occursCheck a t = throwError $ InfiniteType a t
-  | otherwise = return (Subst $ Map.singleton a t)
+  | otherwise = return $ singleSubst a t
 
 occursCheck :: FTV a => TVar -> a -> Bool
 occursCheck a t = a `Set.member` ftv t

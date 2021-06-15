@@ -32,6 +32,8 @@ dependencies:
 - containers
 - either
 - dlist
+
+# quickcheck stuff
 - QuickCheck
 - generic-random
 - quickcheck-instances
