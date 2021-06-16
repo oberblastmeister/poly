@@ -1,9 +1,4 @@
-module Poly.Parser
-  ( parseExpr,
-    parseModule,
-    parseProgram,
-  )
-where
+module Poly.Parser where
 
 import Control.Monad.Combinators.Expr
 import Data.Either.Combinators
@@ -12,6 +7,7 @@ import Data.Text (Text)
 import Data.Void
 import Poly.Lexer
 import Poly.Syntax
+import Poly.Type
 import Text.Megaparsec
 import TextShow
 
@@ -98,24 +94,51 @@ term =
 
 operatorTable :: [[Operator Parser Expr]]
 operatorTable =
-  [ [ binary "*" Mul,
-      binary "/" Div
+  [ [ bin "*" Mul,
+      bin "/" Div
     ],
-    [ binary "+" Add,
-      binary "-" Sub
+    [ bin "+" Add,
+      bin "-" Sub
     ],
-    [ binary "==" Eql,
-      binary "!=" Neql
+    [ bin "==" Eql,
+      bin "!=" Neql
     ]
   ]
+  where
+    bin t op = infixL t (Bin op)
 
-binary :: Text -> BinOp -> Operator Parser Expr
-binary name binOp = InfixL (Op binOp <$ symbol name)
+infixL, infixR :: Text -> (t -> t -> t) -> Operator Parser t
+infixL name binExpr = InfixL (binExpr <$ symbol name)
+infixR name binExpr = InfixR (binExpr <$ symbol name)
 
 expr :: Parser Expr
 expr = makeExprParser term operatorTable
 
--- type Decl = (Name, Expr)
+tyLit :: Parser Type
+tyLit =
+  TCon
+    <$> choice @[]
+      [ TBool <$ reserved "Bool",
+        TInt <$ reserved "Int",
+        TChar <$ reserved "Char",
+        TStr <$ reserved "Str"
+      ]
+
+tyAtom :: Parser Type
+tyAtom =
+  choice @[]
+    [ parens pType,
+      tyLit
+    ]
+
+tyOps :: [[Operator Parser Type]]
+tyOps =
+  [ [ infixR "->" (:->:)
+    ]
+  ]
+
+pType :: Parser Type
+pType = makeExprParser tyAtom tyOps
 
 letDecl :: Parser Decl
 letDecl = do
@@ -155,6 +178,7 @@ prog :: Parser Program
 prog = Program <$> many top <*> optional expr
 
 newtype PError = PError (ParseErrorBundle Text Void)
+  deriving (Eq)
 
 instance Show PError where
   show (PError e) = errorBundlePretty e
@@ -173,3 +197,6 @@ parseModule = parseFull modl
 
 parseProgram :: Text -> Either PError Program
 parseProgram = parseFull prog
+
+parseType :: Text -> Either PError Type
+parseType = parseFull pType

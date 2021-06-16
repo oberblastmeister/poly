@@ -6,6 +6,7 @@ module Poly
     module Poly.Pretty,
     module Poly.TypeEnv,
     module Poly.Eval,
+    module Poly.QQ,
   )
 where
 
@@ -20,6 +21,7 @@ import Poly.Pretty
     ppr,
     pprb,
   )
+import Poly.QQ (ex, ty)
 import Poly.Syntax
   ( BinOp (..),
     Decl (..),

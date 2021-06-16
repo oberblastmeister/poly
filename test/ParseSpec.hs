@@ -4,8 +4,11 @@ import Data.Either.Combinators
 import Data.Function
 import Data.Text (Text)
 import Poly.Parser
+import Poly.Pretty
 import Poly.Syntax
+import Poly.Type
 import Test.Hspec
+import Test.Hspec.QuickCheck
 
 unwrap :: Either String r -> r
 unwrap = either error id
@@ -21,6 +24,22 @@ parseProgTest s = parseProgram s & mapLeft show & unwrap
 
 spec :: Spec
 spec = parallel $ do
+  describe "types" $ do
+    prop "should parse literal type by pretty printing it" $
+      \tyLit ->
+        let ty = TCon tyLit
+         in parseType (ppr ty) == Right ty
+
+    prop "it should parse arrow types from two pretty printed types" $
+      \ty1 ty2 ->
+        let surround ty = "(" <> ppr ty <> ")"
+            ty1' = surround ty1
+            ty2' = surround ty2
+            arr = Right $ ty1 :->: ty2
+            arr' = ty1' <> "->" <> ty2'
+            parsedArr = parseType arr'
+         in arr `shouldBe` parsedArr
+
   describe "expressions" $ do
     describe "literals" $ do
       it "should parse bool" $ do
@@ -42,19 +61,19 @@ spec = parallel $ do
 
     describe "binary" $ do
       it "should parse simple" $ do
-        parseExprTest "1234 == 1234" `shouldBe` Op Eql (Lit $ LInt 1234) (Lit $ LInt 1234)
-        parseExprTest "1 - 1" `shouldBe` Op Sub (Lit $ LInt 1) (Lit $ LInt 1)
-        parseExprTest "12 + 12" `shouldBe` Op Add (Lit $ LInt 12) (Lit $ LInt 12)
-        parseExprTest "0 * 0 " `shouldBe` Op Mul (Lit $ LInt 0) (Lit $ LInt 0)
-        parseExprTest "123 / 123" `shouldBe` Op Div (Lit $ LInt 123) (Lit $ LInt 123)
-        parseExprTest "True != False" `shouldBe` Op Neql (Lit $ LBool True) (Lit $ LBool False)
+        parseExprTest "1234 == 1234" `shouldBe` Bin Eql (Lit $ LInt 1234) (Lit $ LInt 1234)
+        parseExprTest "1 - 1" `shouldBe` Bin Sub (Lit $ LInt 1) (Lit $ LInt 1)
+        parseExprTest "12 + 12" `shouldBe` Bin Add (Lit $ LInt 12) (Lit $ LInt 12)
+        parseExprTest "0 * 0 " `shouldBe` Bin Mul (Lit $ LInt 0) (Lit $ LInt 0)
+        parseExprTest "123 / 123" `shouldBe` Bin Div (Lit $ LInt 123) (Lit $ LInt 123)
+        parseExprTest "True != False" `shouldBe` Bin Neql (Lit $ LBool True) (Lit $ LBool False)
 
       it "should parse precedence correctly" $ do
         parseExprTest "34 + 234 * 123"
-          `shouldBe` Op
+          `shouldBe` Bin
             Add
             (Lit $ LInt 34)
-            ( Op
+            ( Bin
                 Mul
                 (Lit $ LInt 234)
                 (Lit $ LInt 123)
@@ -62,9 +81,9 @@ spec = parallel $ do
 
       it "should parse parens" $ do
         parseExprTest "(34 + 234) * 123"
-          `shouldBe` Op
+          `shouldBe` Bin
             Mul
-            ( Op
+            ( Bin
                 Add
                 (Lit $ LInt 34)
                 (Lit $ LInt 234)
@@ -111,3 +130,5 @@ spec = parallel $ do
     it "should parse let decl" $ do
       parseModTest "let x = 1234;" `shouldBe` [Decl "x" (Lit $ LInt 1234)]
       parseModTest "let rec x y = x y;" `shouldBe` [Decl "x" (Fix $ Lam "x" $ Lam "y" $ App (Var "x") (Var "y"))]
+
+--   where

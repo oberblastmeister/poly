@@ -38,7 +38,6 @@ main' = runInputT defaultSettings loop
         Nothing -> outputStrLn "Goodbye."
         Just input ->
           run input
-            >> loop
 
 main :: IO ()
 main = main'

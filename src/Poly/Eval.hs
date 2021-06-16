@@ -51,7 +51,7 @@ eval :: MonadEval m => Expr -> m Value
 eval expr = case expr of
   Lit l -> return $ evalLit l
   Var x -> asks (Map.! x)
-  Op op a b -> do
+  Bin op a b -> do
     VInt a' <- eval a
     VInt b' <- eval b
     return $ binOp op a' b'
@@ -78,4 +78,4 @@ evalLit (LChar c) = VChar c
 evalLit (LStr s) = VStr s
 
 binOp :: BinOp -> Integer -> Integer -> Value
-binOp = undefined
+binOp op i i' = VStr "not implemented yet"

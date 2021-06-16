@@ -32,6 +32,7 @@ library
       Poly.Lexer
       Poly.Parser
       Poly.Pretty
+      Poly.QQ
       Poly.Syntax
       Poly.Type
       Poly.TypeEnv
@@ -52,6 +53,10 @@ library
       InstanceSigs
       TypeApplications
       DeriveGeneric
+      BangPatterns
+      DeriveDataTypeable
+      QuasiQuotes
+      TemplateHaskell
   ghc-options: -Wall
   build-depends:
       QuickCheck
@@ -66,6 +71,7 @@ library
     , parser-combinators
     , prettyprinter
     , quickcheck-instances
+    , template-haskell
     , text
     , text-show
     , transformers
@@ -90,6 +96,10 @@ executable poly-exe
       InstanceSigs
       TypeApplications
       DeriveGeneric
+      BangPatterns
+      DeriveDataTypeable
+      QuasiQuotes
+      TemplateHaskell
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
@@ -105,6 +115,7 @@ executable poly-exe
     , poly
     , prettyprinter
     , quickcheck-instances
+    , template-haskell
     , text
     , text-show
     , transformers
@@ -135,6 +146,10 @@ test-suite poly-test
       InstanceSigs
       TypeApplications
       DeriveGeneric
+      BangPatterns
+      DeriveDataTypeable
+      QuasiQuotes
+      TemplateHaskell
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
@@ -151,6 +166,7 @@ test-suite poly-test
     , poly
     , prettyprinter
     , quickcheck-instances
+    , template-haskell
     , text
     , text-show
     , transformers

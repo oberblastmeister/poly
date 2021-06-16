@@ -183,7 +183,7 @@ infer env ex = case ex of
     tv <- fresh
     s2 <- unify (tv :->: tv) t
     return (s2, apply s1 tv)
-  Op op e1 e2 -> do
+  Bin op e1 e2 -> do
     (s1, t1) <- infer env e1
     (s2, t2) <- infer env e2
     tv <- fresh

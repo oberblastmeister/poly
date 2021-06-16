@@ -93,7 +93,7 @@ inferExpr :: TypeEnv -> Expr -> Either TypeError Scheme
 inferExpr env ex = do
   (ty, cs) <- runInfer env (infer ex)
   subst <- runSolve cs
-  return $ closeOver $ apply subst ty
+  return $ closeOver $ subst @@ ty
 
 -- | Canonicalize and return the polymorphic toplevel type.
 closeOver :: Type -> Scheme
@@ -102,7 +102,7 @@ closeOver = normalize . generalize empty
 normalize :: Scheme -> Scheme
 normalize (Forall _ body) = Forall (Set.fromList simplified) (normtype body)
   where
-    pool = map TV letters
+    pool = map TV tVarSupply
 
     ord = Map.fromList $ zip (Set.toList ftvs) simplified
     simplified = take (Set.size ftvs) pool
@@ -133,31 +133,27 @@ fresh :: MonadState InferState m => m Type
 fresh = do
   s <- get
   put s {count = count s + 1}
-  return $ TVar $ TV (letters !! count s)
-
-letters :: [Text]
-letters = T.pack <$> ([1 ..] >>= flip replicateM ['a' .. 'z'])
+  return $ TVar $ TV (tVarSupply !! count s)
 
 inEnv :: MonadReader TypeEnv m => (Name, Scheme) -> m a -> m a
 inEnv (x, sc) m = do
+  -- let scope e = dbg (extend (dbg e) (x, sc))
   let scope e = extend e (x, sc)
   local scope m
 
 constrain, (->>) :: MonadWriter (DList Constraint) m => Type -> Type -> m ()
-constrain t1 t2 = do
-  tell [(t1, t2)]
+constrain t1 t2 = tell [(t1, t2)]
 (->>) = constrain
 
 infer :: InferM m => Expr -> m Type
-infer expr = case expr of
-  Lit l -> inferLit l
-  Var x -> inferVar x
-  Lam x e -> inferLam x e
-  App e1 e2 -> inferApp e1 e2
-  Let x e1 e2 -> inferLet x e1 e2
-  Fix e -> inferFix e
-  Op op e1 e2 -> inferOp op e1 e2
-  If cond tr fl -> inferIf cond tr fl
+infer (Lit l) = inferLit l
+infer (Var x) = inferVar x
+infer (Lam x e) = inferLam x e
+infer (App e1 e2) = inferApp e1 e2
+infer (Let x e1 e2) = inferLet x e1 e2
+infer (Fix e) = inferFix e
+infer (Bin op e1 e2) = inferOp op e1 e2
+infer (If cond tr fl) = inferIf cond tr fl
 
 joinTy :: InferM m => Expr -> Expr -> m Type
 joinTy e1 e2 = do
@@ -167,7 +163,7 @@ joinTy e1 e2 = do
   return t2
 
 inferLit :: InferM m => Lit -> m Type
-inferLit lit = return (TCon $ litTy lit)
+inferLit lit = return $ TCon $ litTy lit
 
 litTy :: Lit -> TCon
 litTy (LInt _) = TInt
@@ -175,8 +171,25 @@ litTy (LBool _) = TBool
 litTy (LStr _) = TStr
 litTy (LChar _) = TChar
 
+dbg :: Show a => a -> a
+dbg a = trace (show a) a
+
+-- something is wrong here
+-- I need to do let properly
 inferLet :: InferM m => Name -> Expr -> Expr -> m Type
 inferLet x e e' = do
+  -- (t1, c1) <- listen (infer e)
+  -- sub <- runSolve $ DL.toList (dbg c1)
+  -- local
+  --   -- (\it -> let !_ = dbg it in it)
+  --   (sub @@)
+  --   ( do
+  --       env <- ask
+  --       -- let sc = generalize env (sub @@ t1)
+  --       -- if we do this the type will not be simplified and correct
+  --       let sc = generalize env t1
+  --       inEnv (x, sc) (infer e')
+  --   )
   env <- ask
   (t1, c1) <- listen (infer e)
   sub <- runSolve $ DL.toList c1
@@ -343,3 +356,5 @@ tVarFTVProp tv = ftv (TVar tv) == [tv]
 
 tArrFTVProp :: Type -> Type -> Bool
 tArrFTVProp t1 t2 = ftv (t1 :->: t2) == ftv t1 `Set.union` ftv t2
+
+-- inferLitExprTyProp ::

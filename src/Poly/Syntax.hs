@@ -1,5 +1,6 @@
 module Poly.Syntax where
 
+import Data.Data (Data, Typeable)
 import Data.Text (Text)
 import Poly.Pretty
 import Prettyprinter
@@ -14,8 +15,8 @@ data Expr
   | Lit Lit
   | If Expr Expr Expr
   | Fix Expr
-  | Op BinOp Expr Expr
-  deriving (Show, Eq, Ord)
+  | Bin BinOp Expr Expr
+  deriving (Show, Eq, Ord, Typeable, Data)
 
 instance PP Expr where
   pp (Var x) = pretty x
@@ -23,7 +24,7 @@ instance PP Expr where
   pp (Lam x e) = annParensIf $ "\\" <> pretty x <+> "->" <+> pp e
   pp (Let a b c) = "let" <+> pretty a <+> "=" <+> pp b <+> "in" <+> pp c
   pp (Lit l) = pp l
-  pp (Op o a b) = annParensIf $ pp a <+> pp o <+> pp b
+  pp (Bin o a b) = annParensIf $ pp a <+> pp o <+> pp b
   pp (Fix a) = annParensIf $ "fix" <+> pp a
   pp (If a b c) = "if" <+> pp a <+> "then" <+> pp b <+> "else" <+> pp c
 
@@ -32,7 +33,7 @@ data Lit
   | LBool !Bool
   | LStr !Text
   | LChar !Char
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Typeable, Data)
 
 instance PP Lit where
   pp (LInt i) = pretty i
@@ -41,7 +42,7 @@ instance PP Lit where
   pp (LChar c) = pretty c
 
 data BinOp = Add | Sub | Mul | Div | Eql | Neql
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Typeable, Data)
 
 instance PP BinOp where
   pp Add = "+"

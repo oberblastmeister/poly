@@ -1,9 +1,12 @@
 module Poly.Type where
 
+import Control.Monad (replicateM)
+import Data.Data (Data, Typeable)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.String (IsString)
 import Data.Text (Text)
+import qualified Data.Text as T
 import GHC.Generics
 import Generic.Random
 import Poly.Pretty
@@ -29,7 +32,20 @@ instance PP Scheme where
         <+> pp t
 
 newtype TVar = TV Text
-  deriving (Show, TextShow, Eq, Ord, Pretty, Arbitrary, IsString)
+  deriving
+    ( Show,
+      TextShow,
+      Eq,
+      Ord,
+      Pretty,
+      IsString,
+      Typeable,
+      Data,
+      Arbitrary
+    )
+
+tVarSupply :: [Text]
+tVarSupply = T.pack <$> ([1 ..] >>= flip replicateM ['a' .. 'z'])
 
 instance PP TVar where
   pp (TV t) = pretty t
@@ -37,9 +53,8 @@ instance PP TVar where
 data Type
   = TVar TVar
   | TCon TCon
-  -- | TArr Type Type
   | Type :->: Type
-  deriving (Show, Eq, Ord, Generic)
+  deriving (Show, Eq, Ord, Generic, Typeable, Data)
 
 infixr 9 :->:
 
@@ -69,7 +84,7 @@ data TCon
   | TBool
   | TStr
   | TChar
-  deriving (Show, Eq, Ord, Generic)
+  deriving (Show, Eq, Ord, Generic, Typeable, Data)
 
 instance Arbitrary TCon where
   arbitrary = genericArbitraryU
