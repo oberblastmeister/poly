@@ -89,15 +89,14 @@ runInfer env m = do
   return (ty', DL.toList res)
 
 -- | Solve for the toplevel type of an expression in a given environment
-inferExpr :: TypeEnv -> Expr -> Either TypeError Scheme
-inferExpr env ex = do
+inferExpr :: (MonadError TypeError m) => TypeEnv -> Expr -> m Scheme
+inferExpr env ex = normalize <$> inferExpr' env ex
+
+inferExpr' :: (MonadError TypeError m) => TypeEnv -> Expr -> m Scheme
+inferExpr' env ex = liftEither $ do
   (ty, cs) <- runInfer env (infer ex)
   subst <- runSolve cs
-  return $ closeOver $ subst @@ ty
-
--- | Canonicalize and return the polymorphic toplevel type.
-closeOver :: Type -> Scheme
-closeOver = normalize . generalize empty
+  return $ generalize (subst @@ env) $ subst @@ ty
 
 normalize :: Scheme -> Scheme
 normalize (Forall _ body) = Forall (Set.fromList simplified) (normtype body)
@@ -174,27 +173,14 @@ litTy (LChar _) = TChar
 dbg :: Show a => a -> a
 dbg a = trace (show a) a
 
--- something is wrong here
--- I need to do let properly
 inferLet :: InferM m => Name -> Expr -> Expr -> m Type
 inferLet x e e' = do
-  -- (t1, c1) <- listen (infer e)
-  -- sub <- runSolve $ DL.toList (dbg c1)
-  -- local
-  --   -- (\it -> let !_ = dbg it in it)
-  --   (sub @@)
-  --   ( do
-  --       env <- ask
-  --       -- let sc = generalize env (sub @@ t1)
-  --       -- if we do this the type will not be simplified and correct
-  --       let sc = generalize env t1
-  --       inEnv (x, sc) (infer e')
-  --   )
   env <- ask
-  (t1, c1) <- listen (infer e)
-  sub <- runSolve $ DL.toList c1
-  let sc = generalize (env) (apply sub t1)
-  inEnv (x, sc) $ local (id) (infer e')
+  -- it should not matter that the type variables might be the same
+  -- because the polymorphic types must be instantiated before used,
+  -- which makes sure that the variables are unique
+  sc <- inferExpr' env e
+  inEnv (x, sc) $ infer e'
 
 inferVar :: InferM m => Name -> m Type
 inferVar x = do
