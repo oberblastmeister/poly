@@ -5,11 +5,9 @@ import Data.Either.Combinators
 import Data.Functor
 import Data.Text (Text)
 import Data.Void
-import Poly.Constraints
-import Poly.Lexer
+import Poly.Parser.Lexer
 import Poly.Syntax
-import Poly.Type
-import qualified Poly.TypeEnv as TE
+import Poly.Type.Types
 import Text.Megaparsec
 import TextShow
 
@@ -204,5 +202,5 @@ parseProgram = parseFull prog
 parseType :: Text -> Either PError Type
 parseType = parseFull pType
 
-parseScheme :: Text -> Either PError Scheme
-parseScheme s = generalize TE.empty <$> parseType s
+-- parseScheme :: Text -> Either PError Scheme
+-- parseScheme s = generalize TE.empty <$> parseType s

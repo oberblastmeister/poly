@@ -27,17 +27,17 @@ library
   exposed-modules:
       Control.Monad.Supply
       Poly
-      Poly.Constraints
       Poly.Eval
-      Poly.Infer
-      Poly.Lexer
       Poly.Parser
+      Poly.Parser.Lexer
       Poly.Pretty
       Poly.QQ
       Poly.Supply
       Poly.Syntax
-      Poly.Type
-      Poly.TypeEnv
+      Poly.Type.Constraints
+      Poly.Type.Infer
+      Poly.Type.TypeEnv
+      Poly.Type.Types
   other-modules:
       Paths_poly
   hs-source-dirs:

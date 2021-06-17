@@ -1,4 +1,4 @@
-module Poly.Constraints where
+module Poly.Type.Constraints where
 
 import Control.Monad.Except
 import Control.Monad.RWS
@@ -16,8 +16,8 @@ import qualified Data.Text.Lazy.Builder as TLB
 import Debug.Trace
 import Poly.Pretty
 import Poly.Syntax
-import Poly.Type
-import Poly.TypeEnv
+import Poly.Type.Types
+import Poly.Type.TypeEnv
 import Prettyprinter
 import Test.QuickCheck (Arbitrary)
 import TextShow
@@ -152,14 +152,15 @@ constrain t1 t2 = tell [(t1, t2)]
 (->>) = constrain
 
 infer :: InferM m => Expr -> m Type
-infer (Lit l) = inferLit l
-infer (Var x) = inferVar x
-infer (Lam x e) = inferLam x e
-infer (App e1 e2) = inferApp e1 e2
-infer (Let x e1 e2) = inferLet x e1 e2
-infer (Fix e) = inferFix e
-infer (Bin op e1 e2) = inferOp op e1 e2
-infer (If cond tr fl) = inferIf cond tr fl
+infer = \case
+  Lit l -> inferLit l
+  Var x -> inferVar x
+  Lam x e -> inferLam x e
+  App e1 e2 -> inferApp e1 e2
+  Let x e1 e2 -> inferLet x e1 e2
+  Fix e -> inferFix e
+  Bin op e1 e2 -> inferOp op e1 e2
+  If cond tr fl -> inferIf cond tr fl
 
 joinTy :: InferM m => Expr -> Expr -> m Type
 joinTy e1 e2 = do
@@ -354,6 +355,7 @@ substAssociative (s1, s2, s3) st = all (== (vals !! 1)) vals
       [ apply ((s1 <> s2) <> s3),
         apply (s1 <> s2 <> s3)
       ]
+
 equalTypesUnifyProp :: Type -> Bool
 equalTypesUnifyProp t = unify t t == Right emptySubst
 

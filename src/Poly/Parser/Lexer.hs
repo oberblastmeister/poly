@@ -1,4 +1,4 @@
-module Poly.Lexer where
+module Poly.Parser.Lexer where
 
 import Data.Char
 import Data.Text (Text)

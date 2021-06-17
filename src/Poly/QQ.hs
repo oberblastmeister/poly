@@ -38,12 +38,12 @@ quoteTypeExp s = do
     Right t -> do
       liftData' t
 
-quoteSchemeExp :: String -> Q Exp
-quoteSchemeExp s = do
-  case parseScheme $ T.pack s of
-    Left e -> fail $ show e
-    Right t -> do
-      liftData' t
+-- quoteSchemeExp :: String -> Q Exp
+-- quoteSchemeExp s = do
+--   case parseScheme $ T.pack s of
+--     Left e -> fail $ show e
+--     Right t -> do
+--       liftData' t
 
 ex :: QuasiQuoter
 ex = defaultQQ {quoteExp = quoteExprExp}
@@ -51,5 +51,5 @@ ex = defaultQQ {quoteExp = quoteExprExp}
 ty :: QuasiQuoter
 ty = defaultQQ {quoteExp = quoteTypeExp}
 
-pty :: QuasiQuoter
-pty = defaultQQ {quoteExp = quoteSchemeExp}
+-- pty :: QuasiQuoter
+-- pty = defaultQQ {quoteExp = quoteSchemeExp}

@@ -1,16 +1,15 @@
 module Poly
-  ( module Poly.Constraints,
+  ( module Poly.Type.Constraints,
     module Poly.Parser,
-    module Poly.Type,
+    module Poly.Type.Types,
     module Poly.Syntax,
     module Poly.Pretty,
-    module Poly.TypeEnv,
+    module Poly.Type.TypeEnv,
     module Poly.Eval,
     module Poly.QQ,
   )
 where
 
-import Poly.Constraints (inferExpr)
 import Poly.Eval (evalExpr)
 import Poly.Parser (parseExpr, parseModule, parseProgram)
 import Poly.Pretty
@@ -21,7 +20,7 @@ import Poly.Pretty
     ppr,
     pprb,
   )
-import Poly.QQ (ex, pty, ty)
+import Poly.QQ (ex, ty)
 import Poly.Syntax
   ( BinOp (..),
     Decl (..),
@@ -30,7 +29,9 @@ import Poly.Syntax
     Name,
     Program (..),
   )
-import Poly.Type
+import Poly.Type.Constraints (inferExpr)
+import Poly.Type.TypeEnv
+import Poly.Type.Types
   ( Scheme (..),
     TCon (..),
     TVar (..),
@@ -41,4 +42,3 @@ import Poly.Type
     tInt,
     tStr,
   )
-import Poly.TypeEnv

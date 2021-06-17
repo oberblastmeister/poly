@@ -1,4 +1,4 @@
-module Poly.Type where
+module Poly.Type.Types where
 
 import Control.Monad (replicateM)
 import Data.Data (Data, Typeable)

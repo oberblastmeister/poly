@@ -1,9 +1,9 @@
-module Poly.TypeEnv where
+module Poly.Type.TypeEnv where
 
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Poly.Syntax
-import Poly.Type
+import Poly.Type.Types
 
 newtype TypeEnv = TypeEnv {types :: Map Name Scheme}
   deriving (Show)

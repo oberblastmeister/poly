@@ -1,4 +1,4 @@
-module Poly.Infer
+module Poly.Type.Infer
   ( inferExpr,
     inferTop,
     TypeError,
@@ -20,7 +20,7 @@ import qualified Data.Text.Lazy.Builder as TLB
 import Poly.Pretty
 import Poly.QQ
 import Poly.Syntax
-import Poly.Type
+import Poly.Type.Types
 import TextShow
 
 newtype TypeEnv = TypeEnv (Map Name Scheme)
