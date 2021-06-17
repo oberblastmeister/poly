@@ -2,14 +2,16 @@ module Poly.Constraints where
 
 import Control.Monad.Except
 import Control.Monad.RWS
+import Control.Monad.Reader
+import Control.Monad.Supply
+import Control.Monad.Writer
 import Data.DList (DList)
 import qualified Data.DList as DL
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Maybe (fromJust)
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Text (Text)
-import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as TLB
 import Debug.Trace
 import Poly.Pretty
@@ -70,13 +72,12 @@ instance TextShow TypeError where
 type Infer a =
   ExceptT
     TypeError
-    ( RWS TypeEnv (DList Constraint) InferState
-    )
+    (ReaderT TypeEnv (WriterT (DList Constraint) (Supply TVar)))
     a
 
 type InferM m =
   ( MonadReader TypeEnv m,
-    MonadState InferState m,
+    MonadSupply TVar m,
     MonadWriter (DList Constraint) m,
     MonadError TypeError m
   )
@@ -84,24 +85,34 @@ type InferM m =
 -- | Solve for the toplevel type of an expression in a given environment
 runInfer :: TypeEnv -> Infer Type -> Either TypeError (Type, [Constraint])
 runInfer env m = do
-  let (ty, res) = evalRWS (runExceptT m) env initInfer
+  let (ty, res) =
+        fromJust
+          ( evalSupply
+              ( runWriterT
+                  ( runReaderT
+                      (runExceptT m)
+                      env
+                  )
+              )
+              tVarSupply
+          )
   ty' <- ty
   return (ty', DL.toList res)
 
 -- | Solve for the toplevel type of an expression in a given environment
 inferExpr :: (MonadError TypeError m) => TypeEnv -> Expr -> m Scheme
-inferExpr env ex = normalize <$> inferExpr' env ex
+inferExpr env ex = liftEither $ normalize <$> inferExpr' env ex
 
 inferExpr' :: (MonadError TypeError m) => TypeEnv -> Expr -> m Scheme
 inferExpr' env ex = liftEither $ do
-  (ty, cs) <- runInfer env (infer ex)
+  (ty, cs) <- liftEither $ runInfer env (infer ex)
   subst <- runSolve cs
   return $ generalize (subst @@ env) $ subst @@ ty
 
 normalize :: Scheme -> Scheme
 normalize (Forall _ body) = Forall (Set.fromList simplified) (normtype body)
   where
-    pool = map TV tVarSupply
+    pool = tVarSupply
 
     ord = Map.fromList $ zip (Set.toList ftvs) simplified
     simplified = take (Set.size ftvs) pool
@@ -117,7 +128,7 @@ runSolve cs = solver st
   where
     st = (emptySubst, cs)
 
-instantiate :: MonadState InferState m => Scheme -> m Type
+instantiate :: MonadSupply TVar m => Scheme -> m Type
 instantiate (Forall as t) = do
   let sA = Map.fromSet (const fresh) as
   s <- sequenceA sA
@@ -128,15 +139,11 @@ generalize env t = Forall as t
   where
     as = ftv t `Set.difference` ftv env
 
-fresh :: MonadState InferState m => m Type
-fresh = do
-  s <- get
-  put s {count = count s + 1}
-  return $ TVar $ TV (tVarSupply !! count s)
+fresh :: MonadSupply TVar m => m Type
+fresh = TVar <$> supply
 
 inEnv :: MonadReader TypeEnv m => (Name, Scheme) -> m a -> m a
 inEnv (x, sc) m = do
-  -- let scope e = dbg (extend (dbg e) (x, sc))
   let scope e = extend e (x, sc)
   local scope m
 
@@ -347,7 +354,6 @@ substAssociative (s1, s2, s3) st = all (== (vals !! 1)) vals
       [ apply ((s1 <> s2) <> s3),
         apply (s1 <> s2 <> s3)
       ]
-
 equalTypesUnifyProp :: Type -> Bool
 equalTypesUnifyProp t = unify t t == Right emptySubst
 

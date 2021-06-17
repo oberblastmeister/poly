@@ -47,8 +47,8 @@ newtype TVar = TV Text
       Arbitrary
     )
 
-tVarSupply :: [Text]
-tVarSupply = T.pack <$> ([1 ..] >>= flip replicateM ['a' .. 'z'])
+tVarSupply :: [TVar]
+tVarSupply = TV . T.pack <$> ([1 ..] >>= flip replicateM ['a' .. 'z'])
 
 instance PP TVar where
   pp (TV t) = pretty t

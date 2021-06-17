@@ -25,6 +25,7 @@ source-repository head
 
 library
   exposed-modules:
+      Control.Monad.Supply
       Poly
       Poly.Constraints
       Poly.Eval
@@ -33,6 +34,7 @@ library
       Poly.Parser
       Poly.Pretty
       Poly.QQ
+      Poly.Supply
       Poly.Syntax
       Poly.Type
       Poly.TypeEnv
@@ -52,6 +54,8 @@ library
       InstanceSigs
       TypeApplications
       BangPatterns
+      MultiParamTypeClasses
+      FunctionalDependencies
       DeriveGeneric
       GeneralizedNewtypeDeriving
       DeriveDataTypeable
@@ -96,6 +100,8 @@ executable poly-exe
       InstanceSigs
       TypeApplications
       BangPatterns
+      MultiParamTypeClasses
+      FunctionalDependencies
       DeriveGeneric
       GeneralizedNewtypeDeriving
       DeriveDataTypeable
@@ -147,6 +153,8 @@ test-suite poly-test
       InstanceSigs
       TypeApplications
       BangPatterns
+      MultiParamTypeClasses
+      FunctionalDependencies
       DeriveGeneric
       GeneralizedNewtypeDeriving
       DeriveDataTypeable

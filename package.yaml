@@ -53,6 +53,8 @@ default-extensions:
 - InstanceSigs
 - TypeApplications
 - BangPatterns
+- MultiParamTypeClasses
+- FunctionalDependencies
 
 - DeriveGeneric
 - GeneralizedNewtypeDeriving
