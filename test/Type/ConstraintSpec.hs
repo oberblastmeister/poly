@@ -1,13 +1,13 @@
-module ConstraintSpec (spec) where
+module Type.ConstraintSpec (spec) where
 
 import Data.Map (fromList)
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Poly.Constraints
+import Poly.Type.Constraints
 import Poly.QQ
 import Poly.Syntax
-import Poly.Type
-import Poly.TypeEnv
+import Poly.Type.Types
+import Poly.Type.TypeEnv
 import Test.Hspec
 import Test.Hspec.QuickCheck
 

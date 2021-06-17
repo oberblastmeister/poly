@@ -1,5 +1,4 @@
-module Poly.Parser where
-
+module Poly.Parser (module Poly.Parser) where
 import Control.Monad.Combinators.Expr
 import Data.Either.Combinators
 import Data.Functor
@@ -201,6 +200,3 @@ parseProgram = parseFull prog
 
 parseType :: Text -> Either PError Type
 parseType = parseFull pType
-
--- parseScheme :: Text -> Either PError Scheme
--- parseScheme s = generalize TE.empty <$> parseType s

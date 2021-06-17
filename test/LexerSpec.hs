@@ -2,7 +2,7 @@ module LexerSpec (spec) where
 
 import Data.Maybe
 import Data.Text (Text)
-import Poly.Lexer
+import Poly.Parser.Lexer
 import Test.Hspec
 import Text.Megaparsec
 import Prelude hiding (lex)

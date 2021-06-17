@@ -1,12 +1,12 @@
-module InferSpec where
+module Type.InferSpec where
 
 import Data.Either.Combinators
 import Data.Function
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Poly.Infer
+import Poly.Type.Infer
 import Poly.Syntax
-import Poly.Type
+import Poly.Type.Types
 import Test.Hspec
 
 shouldBeEmpty :: (HasCallStack, Show a, Eq a) => Set a -> Expectation

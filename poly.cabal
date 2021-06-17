@@ -133,11 +133,11 @@ test-suite poly-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      ConstraintSpec
-      InferSpec
       LexerSpec
       ParseSpec
       PrettySpec
+      Type.ConstraintSpec
+      Type.InferSpec
       Paths_poly
   hs-source-dirs:
       test

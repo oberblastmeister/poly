@@ -4,7 +4,7 @@ import Data.Text (Text)
 import Poly.Pretty
 import Poly.QQ
 import Poly.Syntax
-import Poly.Type
+import Poly.Type.Types
 import Test.Hspec
 
 check :: PP p => p -> Text -> Expectation

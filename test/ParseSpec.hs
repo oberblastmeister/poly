@@ -6,7 +6,7 @@ import Data.Text (Text)
 import Poly.Parser
 import Poly.Pretty
 import Poly.Syntax
-import Poly.Type
+import Poly.Type.Types
 import Test.Hspec
 import Test.Hspec.QuickCheck
 

@@ -16,8 +16,8 @@ import qualified Data.Text.Lazy.Builder as TLB
 import Debug.Trace
 import Poly.Pretty
 import Poly.Syntax
-import Poly.Type.Types
 import Poly.Type.TypeEnv
+import Poly.Type.Types
 import Prettyprinter
 import Test.QuickCheck (Arbitrary)
 import TextShow
