@@ -29,6 +29,8 @@ spec = parallel $ do
       \tyLit ->
         let ty = TCon tyLit
          in parseType (ppr ty) == Right ty
+    it "should parse int" $
+      parseType "Int" `shouldBe` Right (TCon TInt)
 
     prop "it should parse arrow types from two pretty printed types" $
       \ty1 ty2 ->

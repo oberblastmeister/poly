@@ -1,22 +1,42 @@
 module PrettySpec (spec) where
 
+import Data.Text (Text)
 import Poly.Pretty
+import Poly.QQ
 import Poly.Syntax
 import Poly.Type
 import Test.Hspec
 
+check :: PP p => p -> Text -> Expectation
+check ty s = ppr ty `shouldBe` s
+
+checks :: PP p => [(p, Text)] -> Expectation
+checks list = mapM_ (\(ty, s) -> check ty s) list
+
 spec :: Spec
 spec = parallel $ do
-  it "should pretty print TVar" $ do
-    ppr (TV "asdf") `shouldBe` "asdf"
+  describe "types" $ do
+    it "should pretty print TVar" $ do
+      checks
+        [ ([ty|asdf|], "asdf"),
+          ([ty|a|], "a"),
+          ([ty|(a)|], "a")
+        ]
+    it "should pretty print arrows" $ do
+      checks
+        [ ([ty|a -> a -> b|], "a -> a -> b"),
+          ([ty|a -> b -> c -> d|], "a -> b -> c -> d"),
+          ([ty|a -> Str|], "a -> Str"),
+          ([ty|Str -> Str -> Bool|], "Str -> Str -> Bool"),
+          ([ty|(Str -> Str) -> Bool|], "(Str -> Str) -> Bool"),
+          ([ty|Str -> Bool -> (Str -> Int)|], "Str -> Bool -> Str -> Int"),
+          ([ty|Str -> (Bool -> Str) -> Int|], "Str -> (Bool -> Str) -> Int")
+        ]
 
-  it "should pretty print lam" $ do
-    ppr (Lam "x" (Var "x")) `shouldBe` "\\x -> x"
-
-  it "should pretty print app" $ do
-    ppr
-      ( App
-          (Lam "x" (Lam "y" (Var "x")))
-          (Lit $ LBool True)
-      )
-      `shouldBe` "(\\x -> (\\y -> x)) True"
+  describe "expressions" $ do
+    it "should pretty print lam" $ do
+      checks
+        [ ([ex|\x -> x|], "\\x -> x"),
+          ([ex|\x y -> y x|], "\\x -> \\y -> y x"),
+          ([ex|x y z w g|], "x y z w g")
+        ]

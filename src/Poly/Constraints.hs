@@ -250,15 +250,15 @@ ops =
       (Eql, tInt :->: tInt :->: tBool)
     ]
 
-unifies :: SolveM m => Type -> Type -> m Subst
-unifies t1 t2 | t1 == t2 = return emptySubst
-unifies (TVar v) t = v `bind` t
-unifies t (TVar v) = v `bind` t
-unifies (t1 :->: ts1) (t2 :->: ts2) = do
-  su1 <- unifies t1 t2
-  su2 <- unifies (su1 @@ ts1) (su1 @@ ts2)
+unify :: SolveM m => Type -> Type -> m Subst
+unify t1 t2 | t1 == t2 = return emptySubst
+unify (TVar v) t = v `bind` t
+unify t (TVar v) = v `bind` t
+unify (t1 :->: ts1) (t2 :->: ts2) = do
+  su1 <- unify t1 t2
+  su2 <- unify (su1 @@ ts1) (su1 @@ ts2)
   return (su2 <> su1)
-unifies t1 t2 = throwError $ UnificationFail t1 t2
+unify t1 t2 = throwError $ UnificationFail t1 t2
 
 bind :: SolveM m => TVar -> Type -> m Subst
 bind a t
@@ -275,7 +275,7 @@ solver (su, cs) =
   case cs of
     [] -> return su
     ((t1, t2) : cs0) -> do
-      su1 <- unifies t1 t2
+      su1 <- unify t1 t2
       solver (su1 <> su, apply su1 cs0)
 
 class Substitutable a where
@@ -329,6 +329,20 @@ instance FTV TypeEnv where
 instance FTV a => FTV [a] where
   ftv = foldr (Set.union . ftv) Set.empty
 
+class Subsume a where
+  subsume :: a -> a -> (Bool, Subst)
+
+-- instance Subsume Type where
+--   subsume t1 t2 = go Map.empty t1 t2
+--     where go
+--       go seen (TCon a) (TCon b) = (a == b, emptySubst)
+--       go seen t@(TVar a) (TVar b) = (True, emptySubst)
+  -- subsume (TCon a) (TCon b) = (a == b, emptySubst)
+  -- subsume t@(TVar a) (TVar b) = (True, emptySubst)
+  -- subsume t@(TCon a) (TVar tv) = (True, singleSubst tv t)
+  -- subsume
+  -- subsume (TVar _) _ = (False, emptySubst)
+
 substTConProp :: Subst -> TCon -> Bool
 substTConProp s tcon = apply s t == t
   where
@@ -349,7 +363,7 @@ substAssociative (s1, s2, s3) st = all (== (vals !! 1)) vals
       ]
 
 equalTypesUnifyProp :: Type -> Bool
-equalTypesUnifyProp t = unifies t t == Right emptySubst
+equalTypesUnifyProp t = unify t t == Right emptySubst
 
 tVarFTVProp :: TVar -> Bool
 tVarFTVProp tv = ftv (TVar tv) == [tv]

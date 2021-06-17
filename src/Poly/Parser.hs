@@ -5,9 +5,11 @@ import Data.Either.Combinators
 import Data.Functor
 import Data.Text (Text)
 import Data.Void
+import Poly.Constraints
 import Poly.Lexer
 import Poly.Syntax
 import Poly.Type
+import qualified Poly.TypeEnv as TE
 import Text.Megaparsec
 import TextShow
 
@@ -124,11 +126,15 @@ tyLit =
         TStr <$ reserved "Str"
       ]
 
+tyVar :: Parser Type
+tyVar = TVar . TV <$> ident
+
 tyAtom :: Parser Type
 tyAtom =
   choice @[]
     [ parens pType,
-      tyLit
+      tyLit,
+      tyVar
     ]
 
 tyOps :: [[Operator Parser Type]]
@@ -168,9 +174,6 @@ decl = try letRecDecl <|> letDecl <|> val
 top :: Parser Decl
 top = decl <* optional semi
 
--- modRet :: Parser Expr
--- modRet = expr
-
 modl :: Parser [Decl]
 modl = many top
 
@@ -200,3 +203,6 @@ parseProgram = parseFull prog
 
 parseType :: Text -> Either PError Type
 parseType = parseFull pType
+
+parseScheme :: Text -> Either PError Scheme
+parseScheme s = generalize TE.empty <$> parseType s

@@ -18,6 +18,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as TLB
 import Poly.Pretty
+import Poly.QQ
 import Poly.Syntax
 import Poly.Type
 import TextShow
@@ -206,10 +207,10 @@ extend (TypeEnv env) (x, s) = TypeEnv $ Map.insert x s env
 ops :: Map BinOp Type
 ops =
   Map.fromList
-    [ (Add, intBinFun),
-      (Mul, intBinFun),
-      (Sub, intBinFun),
-      (Eql, TCon TInt :->: TCon TInt :->: TCon TBool)
+    [ (Add, [ty|Int -> Int -> Int|]),
+      (Mul, [ty|Int -> Int -> Int|]),
+      (Sub, [ty|Int -> Int -> Int|]),
+      (Eql, [ty|Int -> Int -> Bool|])
     ]
 
 lookupEnv :: InferM m => TypeEnv -> Name -> m (Subst, Type)

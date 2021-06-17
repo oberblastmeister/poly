@@ -21,7 +21,7 @@ import Poly.Pretty
     ppr,
     pprb,
   )
-import Poly.QQ (ex, ty)
+import Poly.QQ (ex, pty, ty)
 import Poly.Syntax
   ( BinOp (..),
     Decl (..),
