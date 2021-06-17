@@ -323,20 +323,6 @@ instance FTV TypeEnv where
 instance FTV a => FTV [a] where
   ftv = foldr (Set.union . ftv) Set.empty
 
-class Subsume a where
-  subsume :: a -> a -> (Bool, Subst)
-
--- instance Subsume Type where
---   subsume t1 t2 = go Map.empty t1 t2
---     where go
---       go seen (TCon a) (TCon b) = (a == b, emptySubst)
---       go seen t@(TVar a) (TVar b) = (True, emptySubst)
--- subsume (TCon a) (TCon b) = (a == b, emptySubst)
--- subsume t@(TVar a) (TVar b) = (True, emptySubst)
--- subsume t@(TCon a) (TVar tv) = (True, singleSubst tv t)
--- subsume
--- subsume (TVar _) _ = (False, emptySubst)
-
 substTConProp :: Subst -> TCon -> Bool
 substTConProp s tcon = apply s t == t
   where
