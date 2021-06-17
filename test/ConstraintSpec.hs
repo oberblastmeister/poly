@@ -1,7 +1,6 @@
 module ConstraintSpec (spec) where
 
-import Data.Map (Map, fromList)
-import qualified Data.Map as Map
+import Data.Map (fromList)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Poly.Constraints
@@ -11,19 +10,25 @@ import Poly.Type
 import Poly.TypeEnv
 import Test.Hspec
 import Test.Hspec.QuickCheck
-import Test.QuickCheck
 
 shouldBeEmpty :: (HasCallStack, Show a, Eq a) => Set a -> Expectation
 shouldBeEmpty = (`shouldBe` Set.empty)
 
 checkInferMono :: Expr -> Either TypeError Type -> Expectation
-checkInferMono e t = do
+checkInferMono e ty = do
   case inferExpr empty e of
-    Left e -> Left e `shouldBe` t
+    Left e -> Left e `shouldBe` ty
     Right res -> do
-      let (Forall tvs t') = res
+      let (Forall tvs ty') = res
       shouldBeEmpty tvs
-      Right t' `shouldBe` t
+      Right ty' `shouldBe` ty
+
+checkInferPoly :: Expr -> Either TypeError Scheme -> Expectation
+checkInferPoly e ty = do
+  case inferExpr empty e of
+    Left e -> Left e `shouldBe` ty
+    Right res -> do
+      Right res `shouldBe` ty
 
 spec :: Spec
 spec = parallel $ do
@@ -58,13 +63,60 @@ spec = parallel $ do
         checkInferMono [ex|if True then 1234 else (\x -> x) 12334|] (Right [ty|Int|])
 
       it "should infer when they don't match" $ do
-        checkInferMono [ex|if 234 then 123 else 134|] (Left $ UnificationFail [ty|Int|] [ty|Bool|])
+        checkInferMono
+          [ex|if 234 then 123 else 134|]
+          (Left $ UnificationFail [ty|Int|] [ty|Bool|])
 
       it "should infer in the body of an if statement" $ do
-        checkInferMono [ex|let x = True in if x then \x -> x + x else \y -> y + y|] (Right [ty|Int -> Int|])
+        checkInferMono
+          [ex|let x = True in if x then \x -> x + x else \y -> y + y|]
+          (Right [ty|Int -> Int|])
 
       it "should fail when there is unbound variable" $ do
-        checkInferMono [ex|aposdiufpasoidfuapodsifuasd|] (Left $ UnboundVariable "aposdiufpasoidfuapodsifuasd")
+        checkInferMono
+          [ex|aposdiufpasoidfuapodsifuasd|]
+          (Left $ UnboundVariable "aposdiufpasoidfuapodsifuasd")
+
+    describe "polytypes" $ do
+      it "should infer id" $ do
+        checkInferPoly [ex|\x -> x|] (Right $ Forall ["a"] [ty|a -> a|])
+
+      it "should infer compose" $ do
+        checkInferPoly
+          [ex|\f g x -> f (g x)|]
+          ( Right $
+              Forall
+                ["a", "b", "c"]
+                [ty|(b -> c) -> (a -> b) -> (a -> c)|]
+          )
+
+      it "should infer apply" $ do
+        checkInferPoly
+          [ex|\f x -> f x|]
+          (Right $ Forall ["a", "b"] [ty|(a -> b) -> a -> b|])
+
+      describe "lambda combinators" $ do
+        it "should infer s" $ do
+          checkInferPoly
+            [ex|\x y z -> (x z)(y z)|]
+            ( Right $
+                Forall
+                  ["a", "b", "c"]
+                  [ty|(a -> b -> c) -> (a -> b) -> a -> c|]
+            )
+
+        it "should infer k" $ do
+          checkInferPoly
+            [ex|\x y -> x|]
+            (Right $ Forall ["a", "b"] [ty|a -> b -> a|])
+
+        it "should infer i" $ do
+          checkInferPoly [ex|\x -> x|] (Right $ Forall ["a"] [ty|a -> a|])
+
+        it "should not infer y" $ do
+          checkInferPoly
+            [ex|\f -> (\x -> f (x x)) (\x -> f (x x))|]
+            (Right $ Forall ["a"] [ty|a|])
 
     describe "substitutable" $ do
       prop "should do nothing when substituting TCon" $

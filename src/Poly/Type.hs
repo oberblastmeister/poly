@@ -16,7 +16,7 @@ import Test.QuickCheck.Instances ()
 import TextShow
 
 data Scheme = Forall (Set TVar) Type
-  deriving (Show, Typeable, Data)
+  deriving (Show, Eq, Typeable, Data)
 
 instance PP Scheme where
   pp (Forall ts t)

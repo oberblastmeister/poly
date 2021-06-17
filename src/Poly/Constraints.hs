@@ -276,7 +276,7 @@ solver (su, cs) =
     [] -> return su
     ((t1, t2) : cs0) -> do
       su1 <- unify t1 t2
-      solver (su1 <> su, apply su1 cs0)
+      solver (su1 <> su, su1 @@ cs0)
 
 class Substitutable a where
   apply :: Subst -> a -> a
@@ -337,11 +337,11 @@ class Subsume a where
 --     where go
 --       go seen (TCon a) (TCon b) = (a == b, emptySubst)
 --       go seen t@(TVar a) (TVar b) = (True, emptySubst)
-  -- subsume (TCon a) (TCon b) = (a == b, emptySubst)
-  -- subsume t@(TVar a) (TVar b) = (True, emptySubst)
-  -- subsume t@(TCon a) (TVar tv) = (True, singleSubst tv t)
-  -- subsume
-  -- subsume (TVar _) _ = (False, emptySubst)
+-- subsume (TCon a) (TCon b) = (a == b, emptySubst)
+-- subsume t@(TVar a) (TVar b) = (True, emptySubst)
+-- subsume t@(TCon a) (TVar tv) = (True, singleSubst tv t)
+-- subsume
+-- subsume (TVar _) _ = (False, emptySubst)
 
 substTConProp :: Subst -> TCon -> Bool
 substTConProp s tcon = apply s t == t
