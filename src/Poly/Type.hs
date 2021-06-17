@@ -16,7 +16,9 @@ import Test.QuickCheck.Instances ()
 import TextShow
 
 data Scheme = Forall (Set TVar) Type
-  deriving (Show, Eq, Typeable, Data)
+  deriving (Eq, Typeable, Data)
+  deriving (Show) via PPShow Scheme
+  deriving (TextShow) via PPShow Scheme
 
 instance PP Scheme where
   pp (Forall ts t)
@@ -55,7 +57,9 @@ data Type
   = TVar TVar
   | TCon TCon
   | Type :->: Type
-  deriving (Show, Eq, Ord, Generic, Typeable, Data)
+  deriving (Eq, Ord, Generic, Typeable, Data)
+  deriving (Show) via PPShow Type
+  deriving (TextShow) via PPShow Type
 
 infixr 9 :->:
 
@@ -64,11 +68,6 @@ instance Arbitrary Type where
 
 tVar :: Text -> Type
 tVar = TVar . TV
-
--- (->>) :: Type -> Type -> Type
--- (->>) = TArr
-
--- infixr 9 ->>
 
 instance PP Type where
   pp (t1 :->: t2) = shouldParens (isArr t1) (annNest $ pp t1) <+> "->" <+> pp t2
@@ -85,7 +84,9 @@ data TCon
   | TBool
   | TStr
   | TChar
-  deriving (Show, Eq, Ord, Generic, Typeable, Data)
+  deriving (Eq, Ord, Generic, Typeable, Data)
+  deriving (Show) via PPShow TCon
+  deriving (TextShow) via PPShow TCon
 
 instance Arbitrary TCon where
   arbitrary = genericArbitraryU

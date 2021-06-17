@@ -2,14 +2,24 @@ module Poly.Pretty where
 
 import Control.Monad.Reader
 import Data.Text (Text)
+import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TLB
 import Prettyprinter hiding (pretty)
 import Prettyprinter.Internal
 import Prettyprinter.Render.Util.SimpleDocTree
+import TextShow
 
 class PP a where
   pp :: a -> Doc SimplePoly
+
+newtype PPShow a = PPShow a
+
+instance PP a => Show (PPShow a) where
+  show (PPShow a) = T.unpack $ ppr a
+
+instance PP a => TextShow (PPShow a) where
+  showb (PPShow a) = pprb a
 
 data SimplePoly = Parens | ParensIf | NestStart deriving (Show)
 

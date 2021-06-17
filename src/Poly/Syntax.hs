@@ -4,6 +4,7 @@ import Data.Data (Data, Typeable)
 import Data.Text (Text)
 import Poly.Pretty
 import Prettyprinter
+import TextShow
 
 type Name = Text
 
@@ -16,7 +17,9 @@ data Expr
   | If Expr Expr Expr
   | Fix Expr
   | Bin BinOp Expr Expr
-  deriving (Show, Eq, Ord, Typeable, Data)
+  deriving (Eq, Ord, Typeable, Data)
+  deriving (Show) via PPShow Expr
+  deriving (TextShow) via PPShow Expr
 
 instance PP Expr where
   pp (Var x) = pretty x
@@ -33,7 +36,9 @@ data Lit
   | LBool !Bool
   | LStr !Text
   | LChar !Char
-  deriving (Show, Eq, Ord, Typeable, Data)
+  deriving (Eq, Ord, Typeable, Data)
+  deriving (Show) via PPShow Lit
+  deriving (TextShow) via PPShow Lit
 
 instance PP Lit where
   pp (LInt i) = pretty i
@@ -42,7 +47,9 @@ instance PP Lit where
   pp (LChar c) = pretty c
 
 data BinOp = Add | Sub | Mul | Div | Eql | Neql
-  deriving (Show, Eq, Ord, Typeable, Data)
+  deriving (Eq, Ord, Typeable, Data)
+  deriving (Show) via PPShow BinOp
+  deriving (TextShow) via PPShow BinOp
 
 instance PP BinOp where
   pp Add = "+"
@@ -53,7 +60,9 @@ instance PP BinOp where
   pp Neql = "!="
 
 data Decl = Decl Text Expr | DeclExpr Expr
-  deriving (Show, Eq)
+  deriving (Eq)
+  deriving (Show) via PPShow Decl
+  deriving (TextShow) via PPShow Decl
 
 instance PP Decl where
   pp (Decl x e) = "let" <+> pretty x <+> "=" <+> pp e

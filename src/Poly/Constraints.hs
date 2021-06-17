@@ -193,8 +193,8 @@ inferLet x e e' = do
   env <- ask
   (t1, c1) <- listen (infer e)
   sub <- runSolve $ DL.toList c1
-  let sc = generalize (apply sub env) (apply sub t1)
-  inEnv (x, sc) $ local (apply sub) (infer e')
+  let sc = generalize (env) (apply sub t1)
+  inEnv (x, sc) $ local (id) (infer e')
 
 inferVar :: InferM m => Name -> m Type
 inferVar x = do

@@ -37,7 +37,7 @@ main' = runInputT defaultSettings loop
       case minput of
         Nothing -> outputStrLn "Goodbye."
         Just input ->
-          run input
+          run input >> loop
 
 main :: IO ()
 main = main'

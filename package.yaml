@@ -43,18 +43,21 @@ dependencies:
 default-extensions:
 - OverloadedStrings
 - OverloadedLists
+
 - LambdaCase
 - ConstraintKinds
 - FlexibleContexts
 - FlexibleInstances
-- GeneralizedNewtypeDeriving
 - ApplicativeDo
 - TupleSections
 - InstanceSigs
 - TypeApplications
-- DeriveGeneric
 - BangPatterns
+
+- DeriveGeneric
+- GeneralizedNewtypeDeriving
 - DeriveDataTypeable
+- DerivingVia
 
 - QuasiQuotes
 - TemplateHaskell

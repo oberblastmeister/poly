@@ -79,7 +79,7 @@ spec = parallel $ do
 
     describe "polytypes" $ do
       it "should infer id" $ do
-        checkInferPoly [ex|\x -> x|] (Right $ Forall ["a"] [ty|a -> a|])
+        checkInferPoly [ex|let id = \x -> x in id|] (Right $ Forall ["a"] [ty|a -> a|])
 
       it "should infer compose" $ do
         checkInferPoly
@@ -90,15 +90,36 @@ spec = parallel $ do
                 [ty|(b -> c) -> (a -> b) -> (a -> c)|]
           )
 
+        checkInferPoly
+          [ex|let compose = \f g x -> f (g x) in compose|]
+          ( Right $
+              Forall
+                ["a", "b", "c"]
+                [ty|(b -> c) -> (a -> b) -> (a -> c)|]
+                -- [ty|(a -> b -> c) -> (a -> b) -> a -> c|]
+          )
+
       it "should infer apply" $ do
         checkInferPoly
           [ex|\f x -> f x|]
+          (Right $ Forall ["a", "b"] [ty|(a -> b) -> a -> b|])
+
+        checkInferPoly
+          [ex|let apply = \f x -> f x in apply|]
           (Right $ Forall ["a", "b"] [ty|(a -> b) -> a -> b|])
 
       describe "lambda combinators" $ do
         it "should infer s" $ do
           checkInferPoly
             [ex|\x y z -> (x z)(y z)|]
+            ( Right $
+                Forall
+                  ["a", "b", "c"]
+                  [ty|(a -> b -> c) -> (a -> b) -> a -> c|]
+            )
+
+          checkInferPoly
+            [ex|let s = \x y z -> (x z)(y z) in s|]
             ( Right $
                 Forall
                   ["a", "b", "c"]
@@ -116,7 +137,10 @@ spec = parallel $ do
         it "should not infer y" $ do
           checkInferPoly
             [ex|\f -> (\x -> f (x x)) (\x -> f (x x))|]
-            (Right $ Forall ["a"] [ty|a|])
+            (Left (InfiniteType (TV "b") (TVar (TV "b") :->: TVar (TV "c"))))
+
+    -- it "should not infer infinite" $ do
+    --   checkInferPoly [ex|(\x -> x x) (\x -> x x)|] (Right $ Forall ["a"] [ty|a -> a|])
 
     describe "substitutable" $ do
       prop "should do nothing when substituting TCon" $

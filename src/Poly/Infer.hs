@@ -47,6 +47,11 @@ type InferM m =
 
 type Infer a = ExceptT TypeError (State Unique) a
 
+data Constraint
+  = CEqual Type Type
+  | CGen Type Type
+  | CInst Type Type
+
 emptySubst :: Subst
 emptySubst = Map.empty
 
