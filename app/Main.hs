@@ -8,7 +8,11 @@ import qualified Data.Text as T
 import Data.Text.IO as TIO
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TLB
-import Poly
+import Eval
+import Parser.Expr (parseExpr)
+import Type.Constraints
+import Poly.Pretty
+import Type.TypeEnv
 import System.Console.Haskeline
 import TextShow
 

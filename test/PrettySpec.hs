@@ -1,11 +1,11 @@
 module PrettySpec (spec) where
 
+import AST
 import Data.Text (Text)
 import Poly.Pretty
 import Poly.QQ
-import Poly.Syntax
-import Poly.Type.Types
 import Test.Hspec
+import Type.Types
 
 check :: PP p => p -> Text -> Expectation
 check ty s = ppr ty `shouldBe` s

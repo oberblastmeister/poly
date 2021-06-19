@@ -1,4 +1,8 @@
-module Poly.QQ where
+module Poly.QQ
+  ( ex,
+    ty,
+  )
+where
 
 import Data.Data (Data)
 import Data.Text (Text)
@@ -7,7 +11,8 @@ import Data.Typeable (cast)
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote (QuasiQuoter (..))
 import Language.Haskell.TH.Syntax
-import Poly.Parser
+import Parser.Expr (parseExpr)
+import Parser.Type (parseType)
 
 defaultQQ :: QuasiQuoter
 defaultQQ =

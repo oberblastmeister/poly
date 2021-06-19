@@ -1,5 +1,10 @@
-module Poly.Eval where
+module Eval
+  ( Value (..),
+    evalExpr,
+  )
+where
 
+import AST
 import Control.Monad.Reader
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -7,7 +12,6 @@ import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text.Lazy.Builder as TLB
 import Poly.Pretty
-import Poly.Syntax
 import Prettyprinter
 import TextShow
 

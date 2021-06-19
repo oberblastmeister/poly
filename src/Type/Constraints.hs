@@ -1,5 +1,9 @@
-module Poly.Type.Constraints where
+module Type.Constraints
+  ( inferExpr,
+  )
+where
 
+import AST
 import Control.Monad.Except
 import Control.Monad.RWS
 import Control.Monad.Reader
@@ -10,17 +14,16 @@ import qualified Data.DList as DL
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe (fromJust)
+import Data.Name
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Text.Lazy.Builder as TLB
 import Debug.Trace
 import Poly.Pretty
-import Poly.Syntax
-import Poly.Type.TypeEnv
-import Poly.Type.Types
 import Prettyprinter
 import Test.QuickCheck (Arbitrary)
 import TextShow
+import Type.TypeEnv
 import Prelude hiding (lookup)
 
 type Constraint = (Type, Type)
@@ -345,8 +348,8 @@ substAssociative (s1, s2, s3) st = all (== (vals !! 1)) vals
 equalTypesUnifyProp :: Type -> Bool
 equalTypesUnifyProp t = unify t t == Right emptySubst
 
-tVarFTVProp :: TVar -> Bool
-tVarFTVProp tv = ftv (TVar tv) == [tv]
+-- tVarFTVProp :: TVar -> Bool
+-- tVarFTVProp tv = ftv (TVar tv) == [tv]
 
 tArrFTVProp :: Type -> Type -> Bool
 tArrFTVProp t1 t2 = ftv (t1 :->: t2) == ftv t1 `Set.union` ftv t2

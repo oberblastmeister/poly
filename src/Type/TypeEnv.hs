@@ -1,9 +1,16 @@
-module Poly.Type.TypeEnv where
+module Type.TypeEnv
+  ( TypeEnv (..),
+    empty,
+    lookup,
+    extend,
+  )
+where
 
+import AST
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Poly.Syntax
-import Poly.Type.Types
+import Data.Name
+import Prelude hiding (lookup)
 
 newtype TypeEnv = TypeEnv {types :: Map Name Scheme}
   deriving (Show)

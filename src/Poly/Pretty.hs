@@ -1,4 +1,13 @@
-module Poly.Pretty where
+module Poly.Pretty
+  ( annParens,
+    annParensIf,
+    annNest,
+    PP (..),
+    PPShow (..),
+    ppr,
+    pprb,
+  )
+where
 
 import Control.Monad.Reader
 import Data.Text (Text)

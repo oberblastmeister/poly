@@ -1,26 +1,33 @@
-module Poly.Parser.Lexer where
+module Parser.Lexer
+  ( parens,
+    braces,
+    brackets,
+    ident,
+    pascalIdent,
+    reserved,
+    integer,
+    strTok,
+    charTok,
+    semi,
+  )
+  where
 
 import Data.Char
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Void
+import Parser.Primitives
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 
-type Parser = Parsec Void Text
-
-sc :: Parser ()
-sc = L.space space1 (L.skipLineComment "--") (L.skipBlockComment "{-" "-}")
-
-lexeme :: Parser a -> Parser a
-lexeme = L.lexeme sc
-
-symbol :: Text -> Parser Text
-symbol = L.symbol sc
-
 parens :: Parser a -> Parser a
-parens = between (symbol "(") (symbol ")")
+parens = enclosedBy "(" ")"
+
+braces :: Parser a -> Parser a
+braces = enclosedBy "{" "}"
+
+brackets :: Parser a -> Parser a
+brackets = enclosedBy "[" "]"
 
 mkReserved :: [Text] -> Parser ()
 mkReserved l = choice $ (() <$) . symbol <$> l
@@ -34,7 +41,8 @@ reservedKeywords =
       "rec",
       "if",
       "then",
-      "else"
+      "else",
+      "of"
     ]
 
 ident :: Parser Text
@@ -44,15 +52,20 @@ ident = lexeme ident'
       notFollowedBy reservedKeywords
       c <- letterChar
       cs <- takeWhileP (Just "identifier") isIdentContinue
-      return (c `T.cons` cs)
-    isIdentContinue = (||) <$> isAlphaNum <*> (== '_')
+      return $ c `T.cons` cs
+
+isIdentContinue :: Char -> Bool
+isIdentContinue = (||) <$> isAlphaNum <*> (== '_')
+
+pascalIdent :: Parser Text
+pascalIdent = lexeme $ do
+  c <- upperChar
+  cs <- takeWhileP (Just "identitifer") isIdentContinue
+  return $ c `T.cons` cs
 
 reserved :: Text -> Parser ()
 reserved keyword =
   lexeme (string keyword *> notFollowedBy alphaNumChar)
-
-contents :: Parser a -> Parser a
-contents p = sc *> p <* eof
 
 integer :: Parser Integer
 integer = lexeme L.decimal

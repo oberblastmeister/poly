@@ -25,19 +25,19 @@ source-repository head
 
 library
   exposed-modules:
+      AST
       Control.Monad.Supply
-      Poly
-      Poly.Eval
-      Poly.Parser
-      Poly.Parser.Lexer
+      Data.Name
+      Eval
+      Parser.Decl
+      Parser.Expr
+      Parser.Lexer
+      Parser.Primitives
+      Parser.Type
       Poly.Pretty
       Poly.QQ
-      Poly.Supply
-      Poly.Syntax
-      Poly.Type.Constraints
-      Poly.Type.Infer
-      Poly.Type.TypeEnv
-      Poly.Type.Types
+      Type.Constraints
+      Type.TypeEnv
   other-modules:
       Paths_poly
   hs-source-dirs:
@@ -137,7 +137,6 @@ test-suite poly-test
       ParseSpec
       PrettySpec
       Type.ConstraintSpec
-      Type.InferSpec
       Paths_poly
   hs-source-dirs:
       test
