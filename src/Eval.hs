@@ -4,7 +4,7 @@ module Eval
   )
 where
 
-import AST
+import AST.Expr
 import Control.Monad.Reader
 import Data.Map (Map)
 import qualified Data.Map as Map

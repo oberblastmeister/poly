@@ -1,6 +1,7 @@
-module ParseSpec (spec) where
+module Parser.ExprSpec (spec) where
 
-import AST
+import AST.Expr
+import Type.Types
 import Data.Either.Combinators
 import Data.Function
 import Data.Text (Text)

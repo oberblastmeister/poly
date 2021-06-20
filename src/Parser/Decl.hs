@@ -2,16 +2,21 @@ module Parser.Decl
   ( decl,
     top,
     modl,
-    prog
+    prog,
   )
-  where
+where
 
-import AST
+import AST.Decl
+import AST.Expr
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Name
 import Parser.Expr
 import Parser.Lexer
 import Parser.Primitives
 import Parser.Type (pType)
 import Text.Megaparsec
+import Type.Types
 
 letDecl :: Parser Decl
 letDecl = do
@@ -41,19 +46,21 @@ typeDecl = do
   return $ DType name body
 
 adtBody :: Parser ADTBody
-adtBody = Record <$> recordBody <|> Enum <$> enumBody
+adtBody =
+  Record <$> recordBody
+    <|> Enum <$> enumBody
 
-enumBody :: Parser [Variant]
+enumBody :: Parser [(Name, Type)]
 enumBody = some variant
 
-recordBody :: Parser [Field]
+recordBody :: Parser [(Name, Type)]
 recordBody = brackets $ some field
 
-field :: Parser Field
-field = Field <$> ident <* symbol ":" <*> pType
+field :: Parser (Name, Type)
+field = (,) <$> ident <* symbol ":" <*> pType
 
-variant :: Parser Variant
-variant = Variant <$> (symbol "|" *> ident) <* reserved "of" <*> pType
+variant :: Parser (Name, Type)
+variant = (,) <$> (symbol "|" *> ident) <* reserved "of" <*> pType
 
 val :: Parser Decl
 val = DExpr <$> expr

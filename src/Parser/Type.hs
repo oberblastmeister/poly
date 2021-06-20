@@ -4,7 +4,7 @@ module Parser.Type
   )
   where
 
-import AST
+import Type.Types
 import Control.Monad.Combinators.Expr
 import Data.Text (Text)
 import Parser.Lexer
@@ -24,15 +24,15 @@ tyLit =
 tyVar :: Parser Type
 tyVar = TVar . TV <$> ident
 
-tyADT :: Parser Type
-tyADT = TADT <$> pascalIdent
+-- tyADT :: Parser Type
+-- tyADT = TADT <$> pascalIdent
 
 tyAtom :: Parser Type
 tyAtom =
   choice @[]
     [ parens pType,
       tyLit,
-      tyADT,
+      -- tyADT,
       tyVar
     ]
 

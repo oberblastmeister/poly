@@ -10,11 +10,11 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TLB
 import Eval
 import Parser.Expr (parseExpr)
-import Type.Constraints
 import Poly.Pretty
-import Type.TypeEnv
 import System.Console.Haskeline
 import TextShow
+import Type.Infer
+import Type.TypeEnv
 
 exec :: Text -> Either TLB.Builder TLB.Builder
 exec s = do

@@ -1,6 +1,7 @@
 module PrettySpec (spec) where
 
-import AST
+import AST.Expr
+import Type.Types
 import Data.Text (Text)
 import Poly.Pretty
 import Poly.QQ

@@ -1,13 +1,14 @@
-module Type.ConstraintSpec (spec) where
+module Type.InferSpec (spec) where
 
-import AST
+import AST.Expr
+import Type.Types
 import Data.Map (fromList)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Poly.QQ
 import Test.Hspec
 import Test.Hspec.QuickCheck
-import Type.Constraints
+import Type.Infer
 import Type.TypeEnv
 
 shouldBeEmpty :: (HasCallStack, Show a, Eq a) => Set a -> Expectation

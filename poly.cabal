@@ -25,7 +25,8 @@ source-repository head
 
 library
   exposed-modules:
-      AST
+      AST.Decl
+      AST.Expr
       Control.Monad.Supply
       Data.Name
       Eval
@@ -36,8 +37,9 @@ library
       Parser.Type
       Poly.Pretty
       Poly.QQ
-      Type.Constraints
+      Type.Infer
       Type.TypeEnv
+      Type.Types
   other-modules:
       Paths_poly
   hs-source-dirs:
@@ -81,6 +83,7 @@ library
     , text
     , text-show
     , transformers
+    , unordered-containers
   default-language: Haskell2010
 
 executable poly-exe
@@ -129,6 +132,7 @@ executable poly-exe
     , text
     , text-show
     , transformers
+    , unordered-containers
   default-language: Haskell2010
 
 test-suite poly-test
@@ -136,9 +140,9 @@ test-suite poly-test
   main-is: Spec.hs
   other-modules:
       LexerSpec
-      ParseSpec
+      Parser.ExprSpec
       PrettySpec
-      Type.ConstraintSpec
+      Type.InferSpec
       Paths_poly
   hs-source-dirs:
       test
@@ -183,4 +187,5 @@ test-suite poly-test
     , text
     , text-show
     , transformers
+    , unordered-containers
   default-language: Haskell2010

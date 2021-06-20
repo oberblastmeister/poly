@@ -6,7 +6,7 @@ module Type.TypeEnv
   )
 where
 
-import AST (Scheme)
+import Type.Types
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Name (Name)

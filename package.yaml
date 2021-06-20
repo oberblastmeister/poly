@@ -35,6 +35,7 @@ dependencies:
   - transformers
 
   - containers
+  - unordered-containers
   - either
   - dlist
 

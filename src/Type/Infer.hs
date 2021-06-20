@@ -1,15 +1,15 @@
-module Type.Constraints
+module Type.Infer
   ( inferExpr,
     TypeError (..),
     unify,
     emptySubst,
     Substitutable (..),
-    FTV (..),
+    Types (..),
     Subst (..),
   )
 where
 
-import AST
+import AST.Expr
 import Control.Monad.Except
 import Control.Monad.RWS
 import Control.Monad.Reader
@@ -30,6 +30,7 @@ import Prettyprinter
 import Test.QuickCheck (Arbitrary)
 import TextShow
 import Type.TypeEnv
+import Type.Types
 import Prelude hiding (lookup)
 
 type Constraint = (Type, Type)
@@ -125,6 +126,7 @@ normalize (Forall _ body) = Forall (Set.fromList simplified) (normtype body)
     normtype (a :->: b) = normtype a :->: normtype b
     normtype (TCon a) = TCon a
     normtype (TVar a) = TVar $ ord Map.! a
+    normtype t@(ADTTCon _) = t
 
 -- | Run the constraint solver
 runSolve :: MonadSolve m => [Constraint] -> m Subst
@@ -180,9 +182,6 @@ litTy (LInt _) = TInt
 litTy (LBool _) = TBool
 litTy (LStr _) = TStr
 litTy (LChar _) = TChar
-
-dbg :: Show a => a -> a
-dbg a = trace (show a) a
 
 inferLet :: InferM m => Name -> Expr -> Expr -> m Type
 inferLet x e e' = do
@@ -263,7 +262,7 @@ bind a t
   | occursCheck a t = throwError $ InfiniteType a t
   | otherwise = return $ singleSubst a t
 
-occursCheck :: FTV a => TVar -> a -> Bool
+occursCheck :: Types a => TVar -> a -> Bool
 occursCheck a t = a `Set.member` ftv t
 
 -- Unification solver
@@ -306,22 +305,22 @@ instance Substitutable TypeEnv where
 instance Substitutable Subst where
   s @@ (Subst target) = Subst ((s @@) <$> target)
 
-class FTV a where
+class Types a where
   ftv :: a -> Set TVar
 
-instance FTV Type where
+instance Types Type where
   ftv TCon {} = Set.empty
   ftv (TVar a) = Set.singleton a
   ftv (t1 :->: t2) = ftv t1 `Set.union` ftv t2
 
-instance FTV Scheme where
+instance Types Scheme where
   ftv (Forall as t) = ftv t `Set.difference` as
 
-instance FTV Constraint where
+instance Types Constraint where
   ftv (t1, t2) = ftv t1 `Set.union` ftv t2
 
-instance FTV TypeEnv where
+instance Types TypeEnv where
   ftv (TypeEnv env) = ftv $ Map.elems env
 
-instance FTV a => FTV [a] where
+instance Types a => Types [a] where
   ftv = foldr (Set.union . ftv) Set.empty

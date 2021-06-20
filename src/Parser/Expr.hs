@@ -4,7 +4,7 @@ module Parser.Expr
   )
 where
 
-import AST
+import AST.Expr
 import Control.Monad.Combinators.Expr
 import Data.Functor
 import Data.Text (Text)
