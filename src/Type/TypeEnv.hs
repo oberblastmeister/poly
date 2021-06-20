@@ -6,10 +6,10 @@ module Type.TypeEnv
   )
 where
 
-import AST
+import AST (Scheme)
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Name
+import Data.Name (Name)
 import Prelude hiding (lookup)
 
 newtype TypeEnv = TypeEnv {types :: Map Name Scheme}

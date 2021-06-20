@@ -2,15 +2,22 @@ module Parser.Expr
   ( parseExpr,
     expr,
   )
-  where
+where
 
 import AST
 import Control.Monad.Combinators.Expr
 import Data.Functor
+import Data.Text (Text)
 import Parser.Lexer
+  ( charTok,
+    ident,
+    integer,
+    parens,
+    reserved,
+    strTok,
+  )
 import Parser.Primitives
 import Text.Megaparsec
-import Data.Text (Text)
 
 variable :: Parser Expr
 variable = Var <$> ident

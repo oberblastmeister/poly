@@ -53,9 +53,8 @@ library
       TupleSections
       InstanceSigs
       TypeApplications
+      ScopedTypeVariables
       BangPatterns
-      MultiParamTypeClasses
-      FunctionalDependencies
       DeriveGeneric
       GeneralizedNewtypeDeriving
       DeriveDataTypeable
@@ -72,6 +71,8 @@ library
     , generic-random
     , haskeline
     , megaparsec
+    , microlens
+    , microlens-th
     , mtl
     , parser-combinators
     , prettyprinter
@@ -99,9 +100,8 @@ executable poly-exe
       TupleSections
       InstanceSigs
       TypeApplications
+      ScopedTypeVariables
       BangPatterns
-      MultiParamTypeClasses
-      FunctionalDependencies
       DeriveGeneric
       GeneralizedNewtypeDeriving
       DeriveDataTypeable
@@ -118,6 +118,8 @@ executable poly-exe
     , generic-random
     , haskeline
     , megaparsec
+    , microlens
+    , microlens-th
     , mtl
     , parser-combinators
     , poly
@@ -151,9 +153,8 @@ test-suite poly-test
       TupleSections
       InstanceSigs
       TypeApplications
+      ScopedTypeVariables
       BangPatterns
-      MultiParamTypeClasses
-      FunctionalDependencies
       DeriveGeneric
       GeneralizedNewtypeDeriving
       DeriveDataTypeable
@@ -171,6 +172,8 @@ test-suite poly-test
     , haskeline
     , hspec
     , megaparsec
+    , microlens
+    , microlens-th
     , mtl
     , parser-combinators
     , poly

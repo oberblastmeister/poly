@@ -1,5 +1,11 @@
 module Type.Constraints
   ( inferExpr,
+    TypeError (..),
+    unify,
+    emptySubst,
+    Substitutable (..),
+    FTV (..),
+    Subst (..),
   )
 where
 
@@ -32,7 +38,7 @@ type Unifier = (Subst, [Constraint])
 
 type Solve a = Either TypeError a
 
-type SolveM m = (MonadError TypeError m)
+type MonadSolve m = (MonadError TypeError m)
 
 newtype Subst = Subst (Map.Map TVar Type)
   deriving (Eq, Ord, Show, Arbitrary)
@@ -55,11 +61,6 @@ instance Monoid Subst where
   mappend = (<>)
 
   mempty = emptySubst
-
-newtype InferState = InferState {count :: Int}
-
-initInfer :: InferState
-initInfer = InferState {count = 0}
 
 data TypeError
   = InfiniteType TVar Type
@@ -109,8 +110,8 @@ inferExpr env ex = liftEither $ normalize <$> inferExpr' env ex
 inferExpr' :: (MonadError TypeError m) => TypeEnv -> Expr -> m Scheme
 inferExpr' env ex = liftEither $ do
   (ty, cs) <- liftEither $ runInfer env (infer ex)
-  subst <- runSolve cs
-  return $ generalize (subst @@ env) $ subst @@ ty
+  su <- runSolve cs
+  return $ generalize (su @@ env) $ su @@ ty
 
 normalize :: Scheme -> Scheme
 normalize (Forall _ body) = Forall (Set.fromList simplified) (normtype body)
@@ -126,7 +127,7 @@ normalize (Forall _ body) = Forall (Set.fromList simplified) (normtype body)
     normtype (TVar a) = TVar $ ord Map.! a
 
 -- | Run the constraint solver
-runSolve :: SolveM m => [Constraint] -> m Subst
+runSolve :: MonadSolve m => [Constraint] -> m Subst
 runSolve cs = solver st
   where
     st = (emptySubst, cs)
@@ -135,7 +136,7 @@ instantiate :: MonadSupply TVar m => Scheme -> m Type
 instantiate (Forall as t) = do
   let sA = Map.fromSet (const fresh) as
   s <- sequenceA sA
-  return $ apply (Subst s) t
+  return $ Subst s @@ t
 
 generalize :: TypeEnv -> Type -> Scheme
 generalize env t = Forall as t
@@ -150,9 +151,8 @@ inEnv (x, sc) m = do
   let scope e = extend e (x, sc)
   local scope m
 
-constrain, (->>) :: MonadWriter (DList Constraint) m => Type -> Type -> m ()
+constrain :: MonadWriter (DList Constraint) m => Type -> Type -> m ()
 constrain t1 t2 = tell [(t1, t2)]
-(->>) = constrain
 
 infer :: InferM m => Expr -> m Type
 infer = \case
@@ -187,11 +187,11 @@ dbg a = trace (show a) a
 inferLet :: InferM m => Name -> Expr -> Expr -> m Type
 inferLet x e e' = do
   env <- ask
-  -- it should not matter that the type variables might be the same
-  -- because the polymorphic types must be instantiated before used,
-  -- which makes sure that the variables are unique
-  sc <- inferExpr' env e
-  inEnv (x, sc) $ infer e'
+  (t, cs) <- runWriterT $ infer e
+  su <- runSolve $ DL.toList cs
+  let env' = su @@ env
+  let sc = generalize env' $ su @@ t
+  local (const env') $ inEnv (x, sc) $ infer e'
 
 inferVar :: InferM m => Name -> m Type
 inferVar x = do
@@ -247,7 +247,7 @@ ops =
       (Eql, tInt :->: tInt :->: tBool)
     ]
 
-unify :: SolveM m => Type -> Type -> m Subst
+unify :: MonadSolve m => Type -> Type -> m Subst
 unify t1 t2 | t1 == t2 = return emptySubst
 unify (TVar v) t = v `bind` t
 unify t (TVar v) = v `bind` t
@@ -257,7 +257,7 @@ unify (t1 :->: ts1) (t2 :->: ts2) = do
   return (su2 <> su1)
 unify t1 t2 = throwError $ UnificationFail t1 t2
 
-bind :: SolveM m => TVar -> Type -> m Subst
+bind :: MonadSolve m => TVar -> Type -> m Subst
 bind a t
   | t == TVar a = return emptySubst
   | occursCheck a t = throwError $ InfiniteType a t
@@ -267,7 +267,7 @@ occursCheck :: FTV a => TVar -> a -> Bool
 occursCheck a t = a `Set.member` ftv t
 
 -- Unification solver
-solver :: SolveM m => Unifier -> m Subst
+solver :: MonadSolve m => Unifier -> m Subst
 solver (su, cs) =
   case cs of
     [] -> return su
@@ -285,26 +285,26 @@ class Substitutable a where
   {-# MINIMAL apply | (@@) #-}
 
 instance Substitutable Type where
-  apply _ (TCon a) = TCon a
-  apply (Subst s) t@(TVar a) = Map.findWithDefault t a s
-  apply s (t1 :->: t2) = apply s t1 :->: apply s t2
+  _ @@ (TCon a) = TCon a
+  (Subst s) @@ t@(TVar a) = Map.findWithDefault t a s
+  s @@ (t1 :->: t2) = (s @@ t1) :->: (s @@ t2)
 
 instance Substitutable Scheme where
-  apply (Subst s) (Forall as t) = Forall as $ apply s' t
+  (Subst s) @@ (Forall as t) = Forall as $ s' @@ t
     where
       s' = Subst $ foldr Map.delete s as
 
 instance Substitutable Constraint where
-  apply s (t1, t2) = (apply s t1, apply s t2)
+  s @@ (t1, t2) = (s @@ t1, s @@ t2)
 
 instance Substitutable a => Substitutable [a] where
   apply = map . apply
 
 instance Substitutable TypeEnv where
-  apply s (TypeEnv env) = TypeEnv $ Map.map (apply s) env
+  s @@ (TypeEnv env) = TypeEnv $ Map.map (apply s) env
 
 instance Substitutable Subst where
-  apply s (Subst target) = Subst (apply s <$> target)
+  s @@ (Subst target) = Subst ((s @@) <$> target)
 
 class FTV a where
   ftv :: a -> Set TVar
@@ -325,33 +325,3 @@ instance FTV TypeEnv where
 
 instance FTV a => FTV [a] where
   ftv = foldr (Set.union . ftv) Set.empty
-
-substTConProp :: Subst -> TCon -> Bool
-substTConProp s tcon = apply s t == t
-  where
-    t = TCon tcon
-
-ftvTConProp :: TCon -> Bool
-ftvTConProp t = null (ftv $ TCon t)
-
-substAssociative :: (Subst, Subst, Subst) -> Subst -> Bool
-substAssociative (s1, s2, s3) st = all (== (vals !! 1)) vals
-  where
-    vals = ($ st) <$> tests
-
-    tests :: [Subst -> Subst]
-    tests =
-      [ apply ((s1 <> s2) <> s3),
-        apply (s1 <> s2 <> s3)
-      ]
-
-equalTypesUnifyProp :: Type -> Bool
-equalTypesUnifyProp t = unify t t == Right emptySubst
-
--- tVarFTVProp :: TVar -> Bool
--- tVarFTVProp tv = ftv (TVar tv) == [tv]
-
-tArrFTVProp :: Type -> Type -> Bool
-tArrFTVProp t1 t2 = ftv (t1 :->: t2) == ftv t1 `Set.union` ftv t2
-
--- inferLitExprTyProp ::

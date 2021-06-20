@@ -1,15 +1,14 @@
 module Type.ConstraintSpec (spec) where
 
+import AST
 import Data.Map (fromList)
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Type.Constraints
 import Poly.QQ
-import AST
-import Type.Types
-import Type.TypeEnv
 import Test.Hspec
 import Test.Hspec.QuickCheck
+import Type.Constraints
+import Type.TypeEnv
 
 shouldBeEmpty :: (HasCallStack, Show a, Eq a) => Set a -> Expectation
 shouldBeEmpty = (`shouldBe` Set.empty)
@@ -33,19 +32,19 @@ checkInferPoly e ty = do
 spec :: Spec
 spec = parallel $ do
   describe "uninifying" $ do
-    prop "equal types should always unify" $
-      equalTypesUnifyProp
+    prop "equal types should always unify" $ \t ->
+      unify t t == Right emptySubst
 
   describe "infering" $ do
     describe "free type variables" $ do
-      prop "should get nothing from tcon" $
-        ftvTConProp
+      prop "should get nothing from tcon" $ \t ->
+        null (ftv $ TCon t)
 
-      -- prop "ftv from var is itself" $
-      --   tVarFTVProp
+      -- prop "ftv from var is itself" $ \t ->
+      --   null (ftv $ TCon t)
 
-      prop "ftv of arr should be union" $
-        tArrFTVProp
+      prop "ftv of arr should be union" $ \t1 t2 ->
+        ftv (t1 :->: t2) == ftv t1 `Set.union` ftv t2
 
       it "should get from scheme" $ do
         ftv (Forall [] (TVar "a")) `shouldBe` ["a"]
@@ -143,11 +142,17 @@ spec = parallel $ do
     --   checkInferPoly [ex|(\x -> x x) (\x -> x x)|] (Right $ Forall ["a"] [ty|a -> a|])
 
     describe "substitutable" $ do
-      prop "should do nothing when substituting TCon" $
-        substTConProp
+      prop "should do nothing when substituting TCon" $ \s tcon ->
+        let t = TCon tcon
+         in s @@ t == t
 
-      prop "substituing should be associative" $
-        substAssociative
+      prop "substituing should be associative" $ \(s1 :: Subst, s2 :: Subst, s3 :: Subst) (st :: Subst) ->
+        let vals = ($ st) <$> tests
+            tests =
+              [ apply ((s1 <> s2) <> s3),
+                apply (s1 <> s2 <> s3)
+              ]
+         in all (== (vals !! 1)) vals
 
       it "should apply" $ do
         apply

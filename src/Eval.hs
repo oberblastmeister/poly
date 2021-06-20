@@ -12,7 +12,7 @@ import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text.Lazy.Builder as TLB
 import Poly.Pretty
-import Prettyprinter
+import Prettyprinter (Pretty (pretty))
 import TextShow
 
 type TermEnv = Map Text Value
@@ -82,4 +82,10 @@ evalLit (LChar c) = VChar c
 evalLit (LStr s) = VStr s
 
 binOp :: BinOp -> Integer -> Integer -> Value
-binOp op i i' = VStr "not implemented yet"
+binOp op i i' = case op of
+  Add -> VInt $ i + i'
+  Sub -> VInt $ i - i'
+  Mul -> VInt $ i * i'
+
+-- Mul -> VInt $ i / i'
+-- Eql -> VBool $ i == i
