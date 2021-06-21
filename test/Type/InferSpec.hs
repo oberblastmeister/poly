@@ -1,15 +1,15 @@
 module Type.InferSpec (spec) where
 
 import AST.Expr
-import Type.Types
 import Data.Map (fromList)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Poly.QQ
 import Test.Hspec
 import Test.Hspec.QuickCheck
-import Type.Infer
 import Type.Env
+import Type.Infer
+import Type.Types
 
 shouldBeEmpty :: (HasCallStack, Show a, Eq a) => Set a -> Expectation
 shouldBeEmpty = (`shouldBe` Set.empty)
@@ -41,8 +41,8 @@ spec = parallel $ do
       prop "should get nothing from tcon" $ \t ->
         null (ftv $ TCon t)
 
-      -- prop "ftv from var is itself" $ \t ->
-      --   null (ftv $ TCon t)
+      prop "ftv from var is itself" $ \t ->
+        null (ftv $ TCon t)
 
       prop "ftv of arr should be union" $ \t1 t2 ->
         ftv (t1 :->: t2) == ftv t1 `Set.union` ftv t2
@@ -139,8 +139,9 @@ spec = parallel $ do
             [ex|\f -> (\x -> f (x x)) (\x -> f (x x))|]
             (Left (InfiniteType (TV "b") (TVar (TV "b") :->: TVar (TV "c"))))
 
-    -- it "should not infer infinite" $ do
-    --   checkInferPoly [ex|(\x -> x x) (\x -> x x)|] (Right $ Forall ["a"] [ty|a -> a|])
+    it "should not infer infinite" $ do
+      let inf = Left (InfiniteType (TV "a") [ty|a -> b|])
+       in checkInferPoly [ex|(\x -> x x) (\x -> x x)|] inf
 
     describe "substitutable" $ do
       prop "should do nothing when substituting TCon" $ \s tcon ->

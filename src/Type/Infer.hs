@@ -24,7 +24,7 @@ import Data.Name
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Text.Lazy.Builder as TLB
-import Debug.Trace
+import Lens.Micro
 import Poly.Pretty
 import Prettyprinter
 import Test.QuickCheck (Arbitrary)
@@ -36,8 +36,6 @@ import Prelude hiding (lookup)
 type Constraint = (Type, Type)
 
 type Unifier = (Subst, [Constraint])
-
-type Solve a = Either TypeError a
 
 type MonadSolve m = (MonadError TypeError m)
 
@@ -150,7 +148,7 @@ fresh = TVar <$> supply
 
 inEnv :: MonadReader Env m => (Name, Scheme) -> m a -> m a
 inEnv (x, sc) m = do
-  let scope e = extend e (x, sc)
+  let scope e = addScheme e (x, sc)
   local scope m
 
 constrain :: MonadWriter (DList Constraint) m => Type -> Type -> m ()
@@ -195,7 +193,7 @@ inferLet x e e' = do
 inferVar :: InferM m => Name -> m Type
 inferVar x = do
   env <- ask
-  case lookup x env of
+  case lookupScheme x env of
     Nothing -> throwError $ UnboundVariable x
     Just s -> instantiate s
 
@@ -287,6 +285,7 @@ instance Substitutable Type where
   _ @@ (TCon a) = TCon a
   (Subst s) @@ t@(TVar a) = Map.findWithDefault t a s
   s @@ (t1 :->: t2) = (s @@ t1) :->: (s @@ t2)
+  _ @@ t@(ADTTCon _) = t
 
 instance Substitutable Scheme where
   (Subst s) @@ (Forall as t) = Forall as $ s' @@ t
@@ -300,7 +299,7 @@ instance Substitutable a => Substitutable [a] where
   apply = map . apply
 
 instance Substitutable Env where
-  s @@ (Env env) = Env $ Map.map (apply s) env
+  s @@ env = env & types %~ Map.map (apply s)
 
 instance Substitutable Subst where
   s @@ (Subst target) = Subst ((s @@) <$> target)
@@ -312,6 +311,7 @@ instance Types Type where
   ftv TCon {} = Set.empty
   ftv (TVar a) = Set.singleton a
   ftv (t1 :->: t2) = ftv t1 `Set.union` ftv t2
+  ftv ADTTCon {} = Set.empty
 
 instance Types Scheme where
   ftv (Forall as t) = ftv t `Set.difference` as
@@ -320,7 +320,7 @@ instance Types Constraint where
   ftv (t1, t2) = ftv t1 `Set.union` ftv t2
 
 instance Types Env where
-  ftv (Env env) = ftv $ Map.elems env
+  ftv env = ftv $ Map.elems $ env ^. types
 
 instance Types a => Types [a] where
   ftv = foldr (Set.union . ftv) Set.empty
