@@ -22,6 +22,8 @@ data Expr
   | If Expr Expr Expr
   | Fix Expr
   | Bin BinOp Expr Expr
+  | Record [(Name, Expr)]
+  | Enum Name Expr
   deriving (Eq, Ord, Typeable, Data)
   deriving (Show) via PPShow Expr
   deriving (TextShow) via PPShow Expr
@@ -35,6 +37,10 @@ instance PP Expr where
   pp (Bin o a b) = annParensIf $ pp a <+> pp o <+> pp b
   pp (Fix a) = annParensIf $ "fix" <+> pp a
   pp (If a b c) = "if" <+> pp a <+> "then" <+> pp b <+> "else" <+> pp c
+  pp (Record l) = lbrace <+> hsep (punctuate comma $ ppField <$> l) <+> rbrace
+    where
+      ppField (x, e) = pretty x <+> "=" <+> pp e
+  pp (Enum x e) = pretty x <+> pp e
 
 data Lit
   = LInt !Integer

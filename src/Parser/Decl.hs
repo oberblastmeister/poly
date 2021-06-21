@@ -8,7 +8,7 @@ module Parser.Decl
 where
 
 import AST.Decl
-import AST.Expr
+import qualified AST.Expr as Expr
 import Data.Name
 import Data.Text (Text)
 import Parser.Expr
@@ -25,7 +25,7 @@ letDecl = do
   args <- many ident
   symbol "="
   body <- expr
-  return $ DStmt name (foldr Lam body args)
+  return $ DStmt name (foldr Expr.Lam body args)
 
 letRecDecl :: Parser Decl
 letRecDecl = do
@@ -35,7 +35,7 @@ letRecDecl = do
   args <- many ident
   symbol "="
   body <- expr
-  return $ DStmt name (Fix $ foldr Lam body (name : args))
+  return $ DStmt name (Expr.Fix $ foldr Expr.Lam body (name : args))
 
 typeDecl :: Parser Decl
 typeDecl = do

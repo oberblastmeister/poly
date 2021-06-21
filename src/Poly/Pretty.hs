@@ -4,6 +4,7 @@ module Poly.Pretty
     annNest,
     PP (..),
     PPShow (..),
+    SimplePoly,
     ppr,
     pprb,
   )
@@ -27,8 +28,15 @@ newtype PPShow a = PPShow a
 instance PP a => Show (PPShow a) where
   show (PPShow a) = T.unpack $ ppr a
 
+instance PP a => PP (Maybe a) where
+  pp (Just a) = pp a
+  pp Nothing = ""
+
 instance PP a => TextShow (PPShow a) where
   showb (PPShow a) = pprb a
+
+instance PP (Doc SimplePoly) where
+  pp = id
 
 data SimplePoly = Parens | ParensIf | NestStart deriving (Show)
 
