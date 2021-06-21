@@ -1,27 +1,18 @@
 module Parser.ExprSpec (spec) where
 
 import AST.Expr
-import Type.Types
-import Data.Either.Combinators
-import Data.Function
+import Data.Function ((&))
 import Data.Text (Text)
 import Parser.Expr
 import Parser.Type
 import Poly.Pretty
 import Test.Hspec
 import Test.Hspec.QuickCheck
-
-unwrap :: Either String r -> r
-unwrap = either error id
+import Type.Types
+import Util
 
 parseExprTest :: Text -> Expr
-parseExprTest s = parseExpr s & mapLeft show & unwrap
-
--- parseModTest :: Text -> [Decl]
--- parseModTest s = parseModule s & mapLeft show & unwrap
-
--- parseProgTest :: Text -> Program
--- parseProgTest s = parseProgram s & mapLeft show & unwrap
+parseExprTest s = parseExpr s & unwrap
 
 spec :: Spec
 spec = parallel $ do

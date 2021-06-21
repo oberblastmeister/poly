@@ -10,7 +10,7 @@ module Parser.Lexer
     charTok,
     semi,
   )
-  where
+where
 
 import Data.Char
 import Data.Text (Text)
@@ -42,30 +42,29 @@ reservedKeywords =
       "if",
       "then",
       "else",
-      "of"
+      "of",
+      "type"
     ]
 
 ident :: Parser Text
-ident = lexeme ident'
-  where
-    ident' = do
-      notFollowedBy reservedKeywords
-      c <- letterChar
-      cs <- takeWhileP (Just "identifier") isIdentContinue
-      return $ c `T.cons` cs
+ident = lexeme $ do
+  notFollowedBy reservedKeywords
+  c <- lowerChar
+  cs <- takeWhileP (Just "identifier") isIdentContinue
+  return $ c `T.cons` cs
 
 isIdentContinue :: Char -> Bool
 isIdentContinue = (||) <$> isAlphaNum <*> (== '_')
 
 pascalIdent :: Parser Text
 pascalIdent = lexeme $ do
+  notFollowedBy reservedKeywords
   c <- upperChar
   cs <- takeWhileP (Just "identitifer") isIdentContinue
   return $ c `T.cons` cs
 
 reserved :: Text -> Parser ()
-reserved keyword =
-  lexeme (string keyword *> notFollowedBy alphaNumChar)
+reserved keyword = lexeme $ string keyword *> notFollowedBy alphaNumChar
 
 integer :: Parser Integer
 integer = lexeme L.decimal

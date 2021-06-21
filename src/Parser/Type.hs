@@ -2,14 +2,14 @@ module Parser.Type
   ( parseType,
     pType,
   )
-  where
+where
 
-import Type.Types
 import Control.Monad.Combinators.Expr
 import Data.Text (Text)
 import Parser.Lexer
 import Parser.Primitives
 import Text.Megaparsec
+import Type.Types
 
 tyLit :: Parser Type
 tyLit =
@@ -24,15 +24,15 @@ tyLit =
 tyVar :: Parser Type
 tyVar = TVar . TV <$> ident
 
--- tyADT :: Parser Type
--- tyADT = TADT <$> pascalIdent
+tyADT :: Parser Type
+tyADT = ADTTCon <$> pascalIdent
 
 tyAtom :: Parser Type
 tyAtom =
   choice @[]
     [ parens pType,
       tyLit,
-      -- tyADT,
+      tyADT,
       tyVar
     ]
 

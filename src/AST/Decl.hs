@@ -7,7 +7,6 @@ where
 
 import AST.Expr
 import Data.Data (Data, Typeable)
-import Data.Map (Map)
 import Data.Name
 import Data.Text (Text)
 import Poly.Pretty
@@ -20,6 +19,7 @@ data Decl
   = DStmt Text Expr
   | DExpr Expr
   | DType Name ADTBody
+  | DSynonym Name Type
   deriving (Eq, Data, Typeable)
   deriving (Show) via PPShow Decl
   deriving (TextShow) via PPShow Decl
@@ -33,5 +33,5 @@ data Program = Program [Decl] (Maybe Expr)
 
 data ADTBody
   = Record [(Name, Type)]
-  | Enum [(Name, Type)]
+  | Enum [(Name, Maybe Type)]
   deriving (Eq, Data, Typeable)

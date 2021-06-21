@@ -3,14 +3,14 @@ module Parser.Decl
     top,
     modl,
     prog,
+    parseDecl,
   )
 where
 
 import AST.Decl
 import AST.Expr
-import Data.Map (Map)
-import qualified Data.Map as Map
 import Data.Name
+import Data.Text (Text)
 import Parser.Expr
 import Parser.Lexer
 import Parser.Primitives
@@ -40,7 +40,7 @@ letRecDecl = do
 typeDecl :: Parser Decl
 typeDecl = do
   reserved "type"
-  name <- ident
+  name <- pascalIdent
   symbol "="
   body <- adtBody
   return $ DType name body
@@ -50,17 +50,23 @@ adtBody =
   Record <$> recordBody
     <|> Enum <$> enumBody
 
-enumBody :: Parser [(Name, Type)]
+enumBody :: Parser [(Name, Maybe Type)]
 enumBody = some variant
 
 recordBody :: Parser [(Name, Type)]
-recordBody = brackets $ some field
+recordBody = braces $ sepEndBy1 field semi
 
 field :: Parser (Name, Type)
 field = (,) <$> ident <* symbol ":" <*> pType
 
-variant :: Parser (Name, Type)
-variant = (,) <$> (symbol "|" *> ident) <* reserved "of" <*> pType
+variant :: Parser (Name, Maybe Type)
+variant = (,) <$> (symbol "|" *> pascalIdent) <*> optional variantType
+
+variantType :: Parser Type
+variantType = reserved "of" *> pType
+
+typeSynonymDecl :: Parser Decl
+typeSynonymDecl = DSynonym <$> (reserved "type" *> pascalIdent <* symbol "=") <*> pType
 
 val :: Parser Decl
 val = DExpr <$> expr
@@ -68,7 +74,8 @@ val = DExpr <$> expr
 decl :: Parser Decl
 decl =
   choice @[]
-    [ typeDecl,
+    [ try typeDecl <?> "type declaration",
+      typeSynonymDecl <?> "type synonym",
       try letRecDecl,
       letDecl,
       val
@@ -82,3 +89,6 @@ modl = many top
 
 prog :: Parser Program
 prog = Program <$> many top <*> optional expr
+
+parseDecl :: Text -> Either PError Decl
+parseDecl = parseFull decl

@@ -14,7 +14,7 @@ import Poly.Pretty
 import System.Console.Haskeline
 import TextShow
 import Type.Infer
-import Type.TypeEnv
+import Type.Env
 
 exec :: Text -> Either TLB.Builder TLB.Builder
 exec s = do

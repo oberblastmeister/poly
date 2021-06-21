@@ -37,8 +37,8 @@ library
       Parser.Type
       Poly.Pretty
       Poly.QQ
+      Type.Env
       Type.Infer
-      Type.TypeEnv
       Type.Types
   other-modules:
       Paths_poly
@@ -140,9 +140,11 @@ test-suite poly-test
   main-is: Spec.hs
   other-modules:
       LexerSpec
+      Parser.DeclSpec
       Parser.ExprSpec
       PrettySpec
       Type.InferSpec
+      Util
       Paths_poly
   hs-source-dirs:
       test

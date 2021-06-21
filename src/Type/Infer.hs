@@ -29,7 +29,7 @@ import Poly.Pretty
 import Prettyprinter
 import Test.QuickCheck (Arbitrary)
 import TextShow
-import Type.TypeEnv
+import Type.Env
 import Type.Types
 import Prelude hiding (lookup)
 
@@ -77,18 +77,18 @@ instance TextShow TypeError where
 type Infer a =
   ExceptT
     TypeError
-    (ReaderT TypeEnv (WriterT (DList Constraint) (Supply TVar)))
+    (ReaderT Env (WriterT (DList Constraint) (Supply TVar)))
     a
 
 type InferM m =
-  ( MonadReader TypeEnv m,
+  ( MonadReader Env m,
     MonadSupply TVar m,
     MonadWriter (DList Constraint) m,
     MonadError TypeError m
   )
 
 -- | Solve for the toplevel type of an expression in a given environment
-runInfer :: TypeEnv -> Infer Type -> Either TypeError (Type, [Constraint])
+runInfer :: Env -> Infer Type -> Either TypeError (Type, [Constraint])
 runInfer env m = do
   let (ty, res) =
         fromJust
@@ -105,10 +105,10 @@ runInfer env m = do
   return (ty', DL.toList res)
 
 -- | Solve for the toplevel type of an expression in a given environment
-inferExpr :: (MonadError TypeError m) => TypeEnv -> Expr -> m Scheme
+inferExpr :: (MonadError TypeError m) => Env -> Expr -> m Scheme
 inferExpr env ex = liftEither $ normalize <$> inferExpr' env ex
 
-inferExpr' :: (MonadError TypeError m) => TypeEnv -> Expr -> m Scheme
+inferExpr' :: (MonadError TypeError m) => Env -> Expr -> m Scheme
 inferExpr' env ex = liftEither $ do
   (ty, cs) <- liftEither $ runInfer env (infer ex)
   su <- runSolve cs
@@ -140,7 +140,7 @@ instantiate (Forall as t) = do
   s <- sequenceA sA
   return $ Subst s @@ t
 
-generalize :: TypeEnv -> Type -> Scheme
+generalize :: Env -> Type -> Scheme
 generalize env t = Forall as t
   where
     as = ftv t `Set.difference` ftv env
@@ -148,7 +148,7 @@ generalize env t = Forall as t
 fresh :: MonadSupply TVar m => m Type
 fresh = TVar <$> supply
 
-inEnv :: MonadReader TypeEnv m => (Name, Scheme) -> m a -> m a
+inEnv :: MonadReader Env m => (Name, Scheme) -> m a -> m a
 inEnv (x, sc) m = do
   let scope e = extend e (x, sc)
   local scope m
@@ -299,8 +299,8 @@ instance Substitutable Constraint where
 instance Substitutable a => Substitutable [a] where
   apply = map . apply
 
-instance Substitutable TypeEnv where
-  s @@ (TypeEnv env) = TypeEnv $ Map.map (apply s) env
+instance Substitutable Env where
+  s @@ (Env env) = Env $ Map.map (apply s) env
 
 instance Substitutable Subst where
   s @@ (Subst target) = Subst ((s @@) <$> target)
@@ -319,8 +319,8 @@ instance Types Scheme where
 instance Types Constraint where
   ftv (t1, t2) = ftv t1 `Set.union` ftv t2
 
-instance Types TypeEnv where
-  ftv (TypeEnv env) = ftv $ Map.elems env
+instance Types Env where
+  ftv (Env env) = ftv $ Map.elems env
 
 instance Types a => Types [a] where
   ftv = foldr (Set.union . ftv) Set.empty

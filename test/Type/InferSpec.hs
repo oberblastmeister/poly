@@ -9,7 +9,7 @@ import Poly.QQ
 import Test.Hspec
 import Test.Hspec.QuickCheck
 import Type.Infer
-import Type.TypeEnv
+import Type.Env
 
 shouldBeEmpty :: (HasCallStack, Show a, Eq a) => Set a -> Expectation
 shouldBeEmpty = (`shouldBe` Set.empty)
