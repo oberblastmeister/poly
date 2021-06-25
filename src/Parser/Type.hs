@@ -1,6 +1,8 @@
 module Parser.Type
   ( parseType,
     pType,
+    parseScheme,
+    parseTVar
   )
 where
 
@@ -8,7 +10,9 @@ import Control.Monad.Combinators.Expr
 import Data.Text (Text)
 import Parser.Lexer
 import Parser.Primitives
-import Text.Megaparsec
+import Text.Megaparsec hiding (empty)
+import Type.Env (empty)
+import Type.Infer (generalize)
 import Type.Types
 
 tyLit :: Parser Type
@@ -47,3 +51,14 @@ pType = makeExprParser tyAtom tyOps
 
 parseType :: Text -> Either PError Type
 parseType = parseFull pType
+
+parseScheme :: Text -> Either PError Scheme
+parseScheme s = do
+  res <- parseType s
+  return $ generalize empty res
+
+parseTVar :: Text -> Either PError TVar
+parseTVar s = do
+  ty <- parseType s
+  let TVar v = ty
+  return v

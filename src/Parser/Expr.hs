@@ -17,6 +17,7 @@ import Parser.Lexer
     strTok,
   )
 import Parser.Primitives
+import Parser.Type (pType)
 import Text.Megaparsec
 
 variable :: Parser Expr
@@ -78,10 +79,14 @@ ifThen = do
   fl <- expr
   return $ If cond tr fl
 
+typed :: Parser Expr
+typed = parens (Typed <$> (expr <* symbol ":") <*> pType)
+
 atomExpr :: Parser Expr
 atomExpr =
   choice @[]
-    [ parens expr,
+    [ try $ parens expr,
+      typed,
       bool,
       number,
       str,

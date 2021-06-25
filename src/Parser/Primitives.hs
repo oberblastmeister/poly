@@ -13,7 +13,6 @@ where
 
 import Control.Monad.Combinators.Expr
 import Data.Either.Combinators
-import Data.Function ((&))
 import Data.Text (Text)
 import Data.Void
 import Text.Megaparsec

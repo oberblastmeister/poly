@@ -5,7 +5,6 @@ import Data.Data (Data, Typeable)
 import Data.Name
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.String (IsString)
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
@@ -88,6 +87,7 @@ instance PP Scheme where
         <+> pp t
 
 data TVar
+  -- need better arbitrary instance for this, tvnamed should not be empty
   = TVUnbound !Int
   | TVNamed !Text
   deriving (Show, Eq, Ord, Typeable, Data, Generic)

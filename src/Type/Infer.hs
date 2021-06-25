@@ -173,6 +173,7 @@ infer = \case
   Fix e -> inferFix e
   Bin op e1 e2 -> inferOp op e1 e2
   If cond tr fl -> inferIf cond tr fl
+  Typed e t -> inferTyped e t
 
 joinTy :: InferM m => Expr -> Expr -> m Type
 joinTy e1 e2 = do
@@ -243,6 +244,12 @@ inferIf cond tr fl = do
   t2 <- joinTy tr fl
   constrain t1 (TCon TBool)
   return t2
+
+inferTyped :: InferM m => Expr -> Type -> m Type
+inferTyped e t = do
+  t' <- infer e
+  constrain t' t
+  return t'
 
 ops :: Map BinOp Type
 ops =

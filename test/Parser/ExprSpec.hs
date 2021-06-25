@@ -6,6 +6,7 @@ import Data.Text (Text)
 import Parser.Expr
 import Parser.Type
 import Poly.Pretty
+import Poly.QQ (ty)
 import Test.Hspec
 import Test.Hspec.QuickCheck
 import Type.Types
@@ -21,6 +22,7 @@ spec = parallel $ do
       \tyLit ->
         let ty = TCon tyLit
          in parseType (ppr ty) == Right ty
+
     it "should parse int" $
       parseType "Int" `shouldBe` Right (TCon TInt)
 
@@ -110,6 +112,10 @@ spec = parallel $ do
               (Lit $ LBool True)
               (Var "x")
           )
+
+  it "should parse typed expressions" $ do
+    parseExprTest "(1234 : Int)" `shouldBe` Typed (Lit $ LInt 1234) (TCon TInt)
+    parseExprTest "(\\x -> x : a -> a)" `shouldBe` Typed (Lam "x" (Var "x")) [ty|a -> a|]
 
 -- describe "program" $ do
 --   it "should parse single ret" $ do

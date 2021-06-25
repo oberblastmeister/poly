@@ -12,6 +12,7 @@ import Poly.Pretty
 import Prettyprinter
 import Test.QuickCheck.Instances ()
 import TextShow
+import Type.Types (Type)
 
 data Expr
   = Var Name
@@ -22,6 +23,7 @@ data Expr
   | If Expr Expr Expr
   | Fix Expr
   | Bin BinOp Expr Expr
+  | Typed Expr Type
   | Record [(Name, Expr)]
   | Enum Name Expr
   deriving (Eq, Ord, Typeable, Data)
@@ -37,6 +39,7 @@ instance PP Expr where
   pp (Bin o a b) = annParensIf $ pp a <+> pp o <+> pp b
   pp (Fix a) = annParensIf $ "fix" <+> pp a
   pp (If a b c) = "if" <+> pp a <+> "then" <+> pp b <+> "else" <+> pp c
+  pp (Typed e t) = pp e <+> ":" <+> pp t
   pp (Record l) = lbrace <+> hsep (punctuate comma $ ppField <$> l) <+> rbrace
     where
       ppField (x, e) = pretty x <+> "=" <+> pp e

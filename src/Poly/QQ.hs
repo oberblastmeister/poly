@@ -14,10 +14,7 @@ import Language.Haskell.TH
 import Language.Haskell.TH.Quote (QuasiQuoter (..))
 import Language.Haskell.TH.Syntax
 import Parser.Expr (parseExpr)
-import Parser.Type (parseType)
-import Type.Env (empty)
-import Type.Infer (generalize)
-import Type.Types (TVar (..), Type (TVar))
+import Parser.Type (parseScheme, parseType, parseTVar)
 
 defaultQQ :: QuasiQuoter
 defaultQQ =
@@ -34,41 +31,23 @@ liftText txt = AppE (VarE 'T.pack) <$> lift (T.unpack txt)
 liftData' :: Data a => a -> Q Exp
 liftData' = dataToExpQ (fmap liftText . cast)
 
+parseLift :: (Show a, Data b) => (Text -> Either a b) -> String -> Q Exp
+parseLift p s = case p $ T.pack s of
+  Left e -> fail $ show e
+  Right res -> do
+    liftData' res
+
 quoteExprExp :: String -> Q Exp
-quoteExprExp s = do
-  case parseExpr $ T.pack s of
-    Left e -> fail $ show e
-    Right expr -> do
-      liftData' expr
+quoteExprExp = parseLift parseExpr
 
 quoteTypeExp :: String -> Q Exp
-quoteTypeExp s = do
-  case parseType $ T.pack s of
-    Left e -> fail $ show e
-    Right t -> do
-      liftData' t
+quoteTypeExp = parseLift parseType
 
 quotePTypeExp :: String -> Q Exp
-quotePTypeExp s = do
-  case parseType $ T.pack s of
-    Left e -> fail $ show e
-    Right t -> do
-      liftData' $ generalize empty t
+quotePTypeExp = parseLift parseScheme
 
 quoteTVarExp :: String -> Q Exp
-quoteTVarExp s = do
-  case parseType $ T.pack s of
-    Left e -> fail $ show e
-    Right t -> do
-      let TVar v = t
-      liftData' v
-
--- quoteSchemeExp :: String -> Q Exp
--- quoteSchemeExp s = do
---   case parseScheme $ T.pack s of
---     Left e -> fail $ show e
---     Right t -> do
---       liftData' t
+quoteTVarExp = parseLift parseTVar
 
 ex :: QuasiQuoter
 ex = defaultQQ {quoteExp = quoteExprExp}

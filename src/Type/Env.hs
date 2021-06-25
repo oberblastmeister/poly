@@ -8,13 +8,22 @@ import Lens.Micro.TH
 import Type.Types
 import Prelude hiding (lookup)
 
-data Env = Env {_types :: Map Name Scheme, _adts :: Map Name ()}
+data Env = Env
+  { _types :: Map Name Scheme,
+    _adts :: Map Name (),
+    _tvars :: [TVar]
+  }
   deriving (Show)
 
 makeLenses ''Env
 
 empty :: Env
-empty = Env {_types = Map.empty, _adts = Map.empty}
+empty =
+  Env
+    { _types = Map.empty,
+      _adts = Map.empty,
+      _tvars = []
+    }
 
 lookupScheme :: Name -> Env -> Maybe Scheme
 lookupScheme x env = Map.lookup x (env ^. types)
