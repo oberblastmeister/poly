@@ -15,7 +15,7 @@ shouldBeEmpty :: (HasCallStack, Show a, Eq a) => Set a -> Expectation
 shouldBeEmpty = (`shouldBe` Set.empty)
 
 checkInferMono :: Expr -> Either TypeError Type -> Expectation
-checkInferMono e ty = do
+checkInferMono e ty =
   case inferExpr empty e of
     Left e -> Left e `shouldBe` ty
     Right res -> do
@@ -24,15 +24,15 @@ checkInferMono e ty = do
       Right ty' `shouldBe` ty
 
 checkInferPoly :: Expr -> Either TypeError Scheme -> Expectation
-checkInferPoly e ty = do
+checkInferPoly e ty =
   case inferExpr empty e of
     Left e -> Left e `shouldBe` ty
-    Right res -> do
+    Right res ->
       Right res `shouldBe` ty
 
 spec :: Spec
 spec = parallel $ do
-  describe "uninifying" $ do
+  describe "uninifying" $
     prop "equal types should always unify" $ \t ->
       unify t t == Right emptySubst
 
@@ -49,8 +49,8 @@ spec = parallel $ do
 
       it "should get from scheme" $ do
         ftv (Forall [] [ty|a|]) `shouldBe` [[tv|a|]]
-        ftv (Forall [[tv|a|]] ([ty|a|])) `shouldBe` []
-        ftv (Forall [[tv|a|]] ([ty|b -> a|])) `shouldBe` [[tv|b|]]
+        ftv (Forall [[tv|a|]] [ty|a|]) `shouldBe` []
+        ftv (Forall [[tv|a|]] [ty|b -> a|]) `shouldBe` [[tv|b|]]
 
     describe "monotypes" $ do
       it "should infer for simple expressions" $ do
@@ -62,35 +62,35 @@ spec = parallel $ do
         checkInferMono [ex|\x y z -> x + y + z|] (Right [ty|Int -> Int -> Int -> Int|])
         checkInferMono [ex|if True then 1234 else (\x -> x) 12334|] (Right [ty|Int|])
 
-      it "should infer when they don't match" $ do
+      it "should infer when they don't match" $
         checkInferMono
           [ex|if 234 then 123 else 134|]
           (Left $ UnificationFail [ty|Int|] [ty|Bool|])
 
-      it "should infer in the body of an if statement" $ do
+      it "should infer in the body of an if statement" $
         checkInferMono
           [ex|let x = True in if x then \x -> x + x else \y -> y + y|]
           (Right [ty|Int -> Int|])
 
-      it "should fail when there is unbound variable" $ do
+      it "should fail when there is unbound variable" $
         checkInferMono
           [ex|aposdiufpasoidfuapodsifuasd|]
           (Left $ UnboundVariable "aposdiufpasoidfuapodsifuasd")
 
     describe "polytypes" $ do
-      it "should infer id" $ do
+      it "should infer id" $
         checkInferPoly [ex|let id = \x -> x in id|] (Right [pty|a -> a|])
 
       it "should infer compose" $ do
         checkInferPoly
           [ex|\f g x -> f (g x)|]
-          ( Right $
+          ( Right
               [pty|(b -> c) -> (a -> b) -> (a -> c)|]
           )
 
         checkInferPoly
           [ex|let compose = \f g x -> f (g x) in compose|]
-          ( Right $
+          ( Right
               [pty|(b -> c) -> (a -> b) -> (a -> c)|]
               -- [pty|(a -> b -> c) -> (a -> b) -> a -> c|]
           )
@@ -108,31 +108,45 @@ spec = parallel $ do
         it "should infer s" $ do
           checkInferPoly
             [ex|\x y z -> (x z)(y z)|]
-            ( Right $
+            ( Right
                 [pty|(a -> b -> c) -> (a -> b) -> a -> c|]
             )
 
           checkInferPoly
             [ex|let s = \x y z -> (x z)(y z) in s|]
-            ( Right $
+            ( Right
                 [pty|(a -> b -> c) -> (a -> b) -> a -> c|]
             )
 
-        it "should infer k" $ do
+        it "should infer k" $
           checkInferPoly
             [ex|\x y -> x|]
             (Right [pty|a -> b -> a|])
 
-        it "should infer i" $ do
+        it "should infer i" $
           checkInferPoly [ex|\x -> x|] (Right [pty|a -> a|])
 
-        it "should not infer y" $ do
+        it "should not infer y" $
           checkInferPoly
             [ex|\f -> (\x -> f (x x)) (\x -> f (x x))|]
-            (Left (InfiniteType [tv|b|] [ty|b -> c|]))
+            ( Left
+                ( InfiniteType
+                    (TVUnbound 2)
+                    ( TVar (TVUnbound 2)
+                        :->: TVar (TVUnbound 3)
+                    )
+                )
+            )
 
-    it "should not infer infinite" $ do
-      let inf = Left (InfiniteType [tv|a|] [ty|a -> b|])
+    it "should not infer infinite" $
+      let inf =
+            Left
+              ( InfiniteType
+                  (TVUnbound 1)
+                  ( TVar (TVUnbound 1)
+                      :->: TVar (TVUnbound 2)
+                  )
+              )
        in checkInferPoly [ex|(\x -> x x) (\x -> x x)|] inf
 
     describe "substitutable" $ do
