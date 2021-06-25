@@ -48,9 +48,9 @@ spec = parallel $ do
         ftv (t1 :->: t2) == ftv t1 `Set.union` ftv t2
 
       it "should get from scheme" $ do
-        ftv (Forall [] (TVar "a")) `shouldBe` ["a"]
-        ftv (Forall ["a"] (TVar "a")) `shouldBe` []
-        ftv (Forall ["a"] (TVar "b" :->: TVar "a")) `shouldBe` ["b"]
+        ftv (Forall [] [ty|a|]) `shouldBe` [[tv|a|]]
+        ftv (Forall [[tv|a|]] ([ty|a|])) `shouldBe` []
+        ftv (Forall [[tv|a|]] ([ty|b -> a|])) `shouldBe` [[tv|b|]]
 
     describe "monotypes" $ do
       it "should infer for simple expressions" $ do
@@ -79,68 +79,60 @@ spec = parallel $ do
 
     describe "polytypes" $ do
       it "should infer id" $ do
-        checkInferPoly [ex|let id = \x -> x in id|] (Right $ Forall ["a"] [ty|a -> a|])
+        checkInferPoly [ex|let id = \x -> x in id|] (Right [pty|a -> a|])
 
       it "should infer compose" $ do
         checkInferPoly
           [ex|\f g x -> f (g x)|]
           ( Right $
-              Forall
-                ["a", "b", "c"]
-                [ty|(b -> c) -> (a -> b) -> (a -> c)|]
+              [pty|(b -> c) -> (a -> b) -> (a -> c)|]
           )
 
         checkInferPoly
           [ex|let compose = \f g x -> f (g x) in compose|]
           ( Right $
-              Forall
-                ["a", "b", "c"]
-                [ty|(b -> c) -> (a -> b) -> (a -> c)|]
-                -- [ty|(a -> b -> c) -> (a -> b) -> a -> c|]
+              [pty|(b -> c) -> (a -> b) -> (a -> c)|]
+              -- [pty|(a -> b -> c) -> (a -> b) -> a -> c|]
           )
 
       it "should infer apply" $ do
         checkInferPoly
           [ex|\f x -> f x|]
-          (Right $ Forall ["a", "b"] [ty|(a -> b) -> a -> b|])
+          (Right [pty|(a -> b) -> a -> b|])
 
         checkInferPoly
           [ex|let apply = \f x -> f x in apply|]
-          (Right $ Forall ["a", "b"] [ty|(a -> b) -> a -> b|])
+          (Right [pty|(a -> b) -> a -> b|])
 
       describe "lambda combinators" $ do
         it "should infer s" $ do
           checkInferPoly
             [ex|\x y z -> (x z)(y z)|]
             ( Right $
-                Forall
-                  ["a", "b", "c"]
-                  [ty|(a -> b -> c) -> (a -> b) -> a -> c|]
+                [pty|(a -> b -> c) -> (a -> b) -> a -> c|]
             )
 
           checkInferPoly
             [ex|let s = \x y z -> (x z)(y z) in s|]
             ( Right $
-                Forall
-                  ["a", "b", "c"]
-                  [ty|(a -> b -> c) -> (a -> b) -> a -> c|]
+                [pty|(a -> b -> c) -> (a -> b) -> a -> c|]
             )
 
         it "should infer k" $ do
           checkInferPoly
             [ex|\x y -> x|]
-            (Right $ Forall ["a", "b"] [ty|a -> b -> a|])
+            (Right [pty|a -> b -> a|])
 
         it "should infer i" $ do
-          checkInferPoly [ex|\x -> x|] (Right $ Forall ["a"] [ty|a -> a|])
+          checkInferPoly [ex|\x -> x|] (Right [pty|a -> a|])
 
         it "should not infer y" $ do
           checkInferPoly
             [ex|\f -> (\x -> f (x x)) (\x -> f (x x))|]
-            (Left (InfiniteType (TV "b") (TVar (TV "b") :->: TVar (TV "c"))))
+            (Left (InfiniteType [tv|b|] [ty|b -> c|]))
 
     it "should not infer infinite" $ do
-      let inf = Left (InfiniteType (TV "a") [ty|a -> b|])
+      let inf = Left (InfiniteType [tv|a|] [ty|a -> b|])
        in checkInferPoly [ex|(\x -> x x) (\x -> x x)|] inf
 
     describe "substitutable" $ do
@@ -158,13 +150,11 @@ spec = parallel $ do
 
       it "should apply" $ do
         apply
-          (Subst (fromList [(TV "x", tInt)]))
-          ( TVar $
-              TV "x"
-          )
-          `shouldBe` TCon TInt
+          (Subst (fromList [([tv|x|], tInt)]))
+          [ty|x|]
+          `shouldBe` [ty|Int|]
 
         apply
-          (Subst (fromList [(TV "x", tInt), (TV "y", tBool)]))
-          (tVar "x" :->: tVar "y")
-          `shouldBe` (tInt :->: tBool)
+          (Subst (fromList [([tv|x|], tInt), ([tv|y|], tBool)]))
+          [ty|x -> y|]
+          `shouldBe` [ty|Int -> Bool|]

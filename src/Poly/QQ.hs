@@ -1,6 +1,8 @@
 module Poly.QQ
   ( ex,
     ty,
+    pty,
+    tv,
   )
 where
 
@@ -13,6 +15,9 @@ import Language.Haskell.TH.Quote (QuasiQuoter (..))
 import Language.Haskell.TH.Syntax
 import Parser.Expr (parseExpr)
 import Parser.Type (parseType)
+import Type.Env (empty)
+import Type.Infer (generalize)
+import Type.Types (TVar (..), Type (TVar))
 
 defaultQQ :: QuasiQuoter
 defaultQQ =
@@ -43,6 +48,21 @@ quoteTypeExp s = do
     Right t -> do
       liftData' t
 
+quotePTypeExp :: String -> Q Exp
+quotePTypeExp s = do
+  case parseType $ T.pack s of
+    Left e -> fail $ show e
+    Right t -> do
+      liftData' $ generalize empty t
+
+quoteTVarExp :: String -> Q Exp
+quoteTVarExp s = do
+  case parseType $ T.pack s of
+    Left e -> fail $ show e
+    Right t -> do
+      let TVar v = t
+      liftData' v
+
 -- quoteSchemeExp :: String -> Q Exp
 -- quoteSchemeExp s = do
 --   case parseScheme $ T.pack s of
@@ -55,6 +75,12 @@ ex = defaultQQ {quoteExp = quoteExprExp}
 
 ty :: QuasiQuoter
 ty = defaultQQ {quoteExp = quoteTypeExp}
+
+pty :: QuasiQuoter
+pty = defaultQQ {quoteExp = quotePTypeExp}
+
+tv :: QuasiQuoter
+tv = defaultQQ {quoteExp = quoteTVarExp}
 
 -- pty :: QuasiQuoter
 -- pty = defaultQQ {quoteExp = quoteSchemeExp}

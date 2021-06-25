@@ -38,7 +38,7 @@ instance PP Type where
       isArr (:->:) {} = True
       isArr _ = False
   pp (ADTTCon x) = pretty x
-  pp (TVar v) = pretty v
+  pp (TVar v) = pp v
   pp (TCon t) = pp t
 
 data TCon
@@ -80,31 +80,43 @@ instance PP Scheme where
       "forall"
         <+> hcat
           ( punctuate space $
-              pretty
+              pp
                 <$> Set.toList
                   ts
           )
         <> "."
         <+> pp t
 
-newtype TVar = TV Text
-  deriving
-    ( Show,
-      TextShow,
-      Eq,
-      Ord,
-      Pretty,
-      IsString,
-      Typeable,
-      Data,
-      Arbitrary
-    )
+data TVar
+  = TVUnbound !Int
+  | TVNamed !Text
+  deriving (Show, Eq, Ord, Typeable, Data, Generic)
 
-tVarSupply :: [TVar]
-tVarSupply = TV . T.pack <$> ([1 ..] >>= flip replicateM ['a' .. 'z'])
+instance Arbitrary TVar where
+  arbitrary = genericArbitraryU
+
+-- newtype TVar = TV Text
+--   deriving
+--     ( Show,
+--       TextShow,
+--       Eq,
+--       Ord,
+--       Pretty,
+--       IsString,
+--       Typeable,
+--       Data,
+--       Arbitrary
+--     )
 
 instance PP TVar where
-  pp (TV t) = pretty t
+  pp (TVUnbound t) = pretty t
+  pp (TVNamed t) = pretty t
 
-tVar :: Text -> Type
-tVar = TVar . TV
+unboundTVarSupply :: [TVar]
+unboundTVarSupply = TVUnbound <$> [1 ..]
+
+namedTVarSupply :: [TVar]
+namedTVarSupply = TVNamed . T.pack <$> ([1 ..] >>= flip replicateM ['a' .. 'z'])
+
+-- tVar :: Text -> Type
+-- tVar = TVar . TV

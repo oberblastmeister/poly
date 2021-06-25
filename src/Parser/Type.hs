@@ -22,7 +22,7 @@ tyLit =
       ]
 
 tyVar :: Parser Type
-tyVar = TVar . TV <$> ident
+tyVar = TVar . TVNamed <$> ident
 
 tyADT :: Parser Type
 tyADT = ADTTCon <$> pascalIdent

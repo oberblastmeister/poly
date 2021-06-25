@@ -3,6 +3,7 @@ module Type.Infer
     TypeError (..),
     unify,
     emptySubst,
+    generalize,
     Substitutable (..),
     Types (..),
     Subst (..),
@@ -68,7 +69,7 @@ data TypeError
   deriving (Eq, Show)
 
 instance TextShow TypeError where
-  showb (InfiniteType v t) = mconcat ["Cannot construct the infinite type: ", pprb v, " = ", pprb t]
+  showb (InfiniteType v t) = mconcat ["Cannot construct the infinite type: ", pprb $ normtype $ TVar v, " = ", pprb $ normtype t]
   showb (UnificationFail a b) = mconcat ["Cannot unify type ", pprb a, " with ", pprb b]
   showb (UnboundVariable x) = mconcat ["Name ", TLB.fromText x, " is not in scope"]
 
@@ -97,7 +98,7 @@ runInfer env m = do
                       env
                   )
               )
-              tVarSupply
+              unboundTVarSupply
           )
   ty' <- ty
   return (ty', DL.toList res)
@@ -113,18 +114,26 @@ inferExpr' env ex = liftEither $ do
   return $ generalize (su @@ env) $ su @@ ty
 
 normalize :: Scheme -> Scheme
-normalize (Forall _ body) = Forall (Set.fromList simplified) (normtype body)
+normalize (Forall _ body) = Forall (Set.fromList simplified) (normtype' ord body)
   where
-    pool = tVarSupply
+    pool = namedTVarSupply
 
     ord = Map.fromList $ zip (Set.toList ftvs) simplified
     simplified = take (Set.size ftvs) pool
     ftvs = ftv body
 
-    normtype (a :->: b) = normtype a :->: normtype b
-    normtype (TCon a) = TCon a
-    normtype (TVar a) = TVar $ ord Map.! a
-    normtype t@(ADTTCon _) = t
+normtype ty = normtype' ord ty
+  where
+    pool = namedTVarSupply
+
+    ord = Map.fromList $ zip (Set.toList ftvs) simplified
+    simplified = take (Set.size ftvs) pool
+    ftvs = ftv ty
+
+normtype' ord (a :->: b) = normtype' ord a :->: normtype' ord b
+normtype' _ (TCon a) = TCon a
+normtype' ord (TVar a) = TVar $ ord Map.! a
+normtype' _ t@(ADTTCon _) = t
 
 -- | Run the constraint solver
 runSolve :: MonadSolve m => [Constraint] -> m Subst
