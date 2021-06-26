@@ -11,6 +11,7 @@ import qualified Data.Map as Map
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text.Lazy.Builder as TLB
+import Debug.Trace (trace)
 import Poly.Pretty
 import Prettyprinter (Pretty (pretty))
 import TextShow
@@ -51,10 +52,16 @@ errMsg = "IMPOSSIBLE: a pattern probably failed to match. The expression should 
 runEval :: TermEnv -> Eval Value -> Value
 runEval env m = fromMaybe (error errMsg) $ runReaderT m env
 
+dbg x = trace (show x) x
+
 eval :: MonadEval m => Expr -> m Value
 eval expr = case expr of
   Lit l -> return $ evalLit l
-  Var x -> asks (Map.! x)
+  -- Var x -> asks (Map.! x)
+  Var x -> do
+    env <- ask
+    let Just v = Map.lookup x env
+    return v
   Bin op a b -> do
     VInt a' <- eval a
     VInt b' <- eval b
@@ -63,7 +70,9 @@ eval expr = case expr of
   App fun arg -> do
     VClosure x body clo <- eval fun
     argv <- eval arg
+    let nenv = Map.insert x argv clo
     local (\_ -> Map.insert x argv clo) (eval body)
+    local (const nenv) (eval body)
   Let x e body -> do
     v <- eval e
     local (Map.insert x v) (eval body)
@@ -73,7 +82,12 @@ eval expr = case expr of
       then eval tr
       else eval fl
   Fix e -> do
-    eval (App e (Fix e))
+    let !e' = dbg e
+    !e'' <- eval (App e (Fix e))
+    -- eval (App e (Fix e))
+    return $ dbg e''
+
+-- return $ VStr "not yet implemented"
 
 evalLit :: Lit -> Value
 evalLit (LInt i) = VInt i
@@ -83,6 +97,8 @@ evalLit (LStr s) = VStr s
 
 binOp :: BinOp -> Integer -> Integer -> Value
 binOp op i i' = case op of
+  Eql -> VBool $ i == i
+  Neql -> VBool $ i /= i
   Add -> VInt $ i + i'
   Sub -> VInt $ i - i'
   Mul -> VInt $ i * i'

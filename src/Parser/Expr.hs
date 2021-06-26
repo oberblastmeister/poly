@@ -8,6 +8,7 @@ import AST.Expr
 import Control.Monad.Combinators.Expr
 import Data.Functor
 import Data.Text (Text)
+import Debug.Trace (trace)
 import Parser.Lexer
   ( charTok,
     ident,
@@ -62,12 +63,14 @@ letRecIn :: Parser Expr
 letRecIn = do
   reserved "let"
   reserved "rec"
-  x <- ident
+  name <- ident
   symbol "="
   e1 <- expr
   reserved "in"
   e2 <- expr
-  return $ Let x e1 e2
+  -- return $ Let name e1 e2
+  return $ Let name (Fix $ Lam name e1) e2
+  -- return $ Let name (Fix $ foldr @[] Lam e1 [name]) e2
 
 ifThen :: Parser Expr
 ifThen = do
