@@ -43,14 +43,14 @@ instance PP Value where
 instance TextShow Value where
   showb v = TLB.fromText $ ppr v
 
-evalExpr :: Expr -> Value
+evalExpr :: Expr -> Maybe Value
 evalExpr e = runEval emptyTermEnv (eval e)
 
 errMsg :: String
 errMsg = "IMPOSSIBLE: a pattern probably failed to match. The expression should have been type checked before passing it to eval"
 
-runEval :: TermEnv -> Eval Value -> Value
-runEval env m = fromMaybe (error errMsg) $ runReaderT m env
+runEval :: TermEnv -> Eval Value -> Maybe Value
+runEval env m = runReaderT m env
 
 dbg x = trace (show x) x
 
@@ -71,7 +71,7 @@ eval expr = case expr of
     VClosure x body clo <- eval fun
     argv <- eval arg
     let nenv = Map.insert x argv clo
-    local (\_ -> Map.insert x argv clo) (eval body)
+    -- local (\_ -> Map.insert x argv clo) (eval body)
     local (const nenv) (eval body)
   Let x e body -> do
     v <- eval e
@@ -82,10 +82,10 @@ eval expr = case expr of
       then eval tr
       else eval fl
   Fix e -> do
-    let !e' = dbg e
-    !e'' <- eval (App e (Fix e))
-    -- eval (App e (Fix e))
-    return $ dbg e''
+    -- let !e' = dbg e
+    -- !e'' <- eval (App e (Fix e))
+    eval (App e (Fix e))
+    -- return $ dbg e''
 
 -- return $ VStr "not yet implemented"
 
