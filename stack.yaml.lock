@@ -10,4 +10,11 @@ snapshots:
     sha256: 72e87841a0ab5b72f6f018e8ee692fd972b7bb32a944990f028e10d6eb528e63
     url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/17/15.yaml
     size: 567679
-packages: []
+packages:
+- original:
+    hackage: statestack-0.3
+  completed:
+    pantry-tree:
+      sha256: ea567f5e40bda7ec0896394e386ab82ad48d5dc332b4bd9f3191b2d615dc126d
+      size: 272
+    hackage: statestack-0.3@sha256:be43ce2cd790a4732b88cdc9480458503cb5e307b4f79a502d99d5b3d417730e,1135

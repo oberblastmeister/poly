@@ -39,7 +39,9 @@ library
       Poly.QQ
       Type.Env
       Type.Infer
+      Type.InferMonad
       Type.Types
+      Type.Unify
   other-modules:
       Paths_poly
   hs-source-dirs:
